@@ -57,6 +57,7 @@ MIN_SCORING_CONFIDENCE = 0.65
 REDESIGN_GOAL_STATUSES = {"missing", "inferred", "confirmed"}
 OBJECTIVE_TYPES = {"behavior", "interaction", "visual-language", "systemization"}
 CAPABILITY_PASS_STATUSES = {"used", "skipped", "unavailable"}
+CAPABILITY_INVOCATIONS = {"explicit", "automatic"}
 CAPABILITY_PASS_PURPOSES = {
     "evidence_capture",
     "candidate_findings",
@@ -66,6 +67,16 @@ CAPABILITY_PASS_PURPOSES = {
     "ideation",
     "handoff",
     "implementation_qa",
+}
+CAPABILITY_INPUT_KINDS = {
+    "static_screenshot",
+    "video",
+    "figma",
+    "live_flow",
+    "design_system",
+    "research_data",
+    "implementation",
+    "other",
 }
 
 
@@ -140,12 +151,25 @@ def validate_review(data: Any) -> dict[str, Any]:
         status = capability_pass.get("status")
         require(status in CAPABILITY_PASS_STATUSES, f"{prefix}.status is invalid")
         pass_statuses[pass_id] = status
+        invocation = capability_pass.get("invocation", "automatic")
+        require(invocation in CAPABILITY_INVOCATIONS, f"{prefix}.invocation is invalid")
         purposes = capability_pass.get("purposes")
         validate_text_list(purposes, f"{prefix}.purposes", allow_empty=False)
         require(len(purposes) == len(set(purposes)), f"{prefix}.purposes must not contain duplicates")
         require(set(purposes) <= CAPABILITY_PASS_PURPOSES, f"{prefix}.purposes contains an invalid value")
+        input_kinds = capability_pass.get("input_kinds", [])
+        validate_text_list(input_kinds, f"{prefix}.input_kinds")
+        require(len(input_kinds) == len(set(input_kinds)), f"{prefix}.input_kinds must not contain duplicates")
+        require(set(input_kinds) <= CAPABILITY_INPUT_KINDS, f"{prefix}.input_kinds contains an invalid value")
         validate_text_list(capability_pass.get("input_sources", []), f"{prefix}.input_sources")
         validate_text_list(capability_pass.get("limitations", []), f"{prefix}.limitations")
+        if (
+            capability_pass.get("provider") == "codex-product-design"
+            and capability_pass.get("capability") == "audit"
+            and invocation == "explicit"
+            and "static_screenshot" in input_kinds
+        ):
+            require(status != "skipped", f"{prefix} explicit Product Design audit with a static screenshot must not be skipped")
 
     def validate_source_pass_ids(value: Any, path: str) -> None:
         validate_text_list(value, path, allow_empty=False)
@@ -300,7 +324,7 @@ def score_review(data: dict[str, Any]) -> dict[str, Any]:
         "score_confidence": round(score_confidence, 2),
         "dimension_scores": dimension_scores,
         "scoring_profile": profile_name,
-        "scoring_version": "1.3",
+        "scoring_version": "1.4",
     }
 
 

@@ -105,6 +105,12 @@ After the seven sections, include:
 8. capability-pass log with provider, purpose, status, inputs, contribution scope, and limitations;
 9. saved artifact locations.
 
+Render the capability-pass log as:
+
+| ID | Provider | Capability | Trigger | Status | Input kind / source | Contribution scope | Limitations |
+|---|---|---|---|---|---|---|---|
+| P-01 | Codex Product Design | audit | Explicit | Used | Static screenshot / CAND-HOME-01 | Evidence and candidate findings | Interaction and unshown states unsupported |
+
 ## Rendering rules
 
 - `Overall Impression`, `What Works Well`, and `Priority Recommendations` are report sections, not scoring dimensions.
@@ -112,3 +118,4 @@ After the seven sections, include:
 - `Visual Hierarchy`, `Consistency`, and `Accessibility` expose their underlying dimension scores where an exact mapping exists.
 - Use `N/A` rather than an inferred pass when evidence or redesign context is insufficient.
 - Show specialist provenance through `source_pass_ids`, but never use the number of agreeing passes as evidence strength or an extra deduction.
+- Mark an explicitly requested Product Design audit of a readable static screenshot as `Used`; describe unsupported interaction evidence in `限制`, and deduplicate overlapping findings after the pass runs.

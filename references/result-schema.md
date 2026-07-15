@@ -63,17 +63,21 @@ Record optional specialist routing without making the report dependent on any pl
       "id": "P-01",
       "provider": "codex-product-design",
       "capability": "audit",
+      "invocation": "explicit",
       "status": "used",
       "purposes": ["evidence_capture", "candidate_findings"],
-      "input_sources": ["production-home-flow", "candidate-home"],
-      "limitations": ["Captured states do not cover first-time permission denial"]
+      "input_kinds": ["static_screenshot"],
+      "input_sources": ["candidate-home-static"],
+      "limitations": ["Single static screenshot; interaction behavior and unshown states are unsupported"]
     },
     {
       "id": "P-02",
       "provider": "claude-design",
       "capability": "accessibility-review",
+      "invocation": "automatic",
       "status": "skipped",
       "purposes": ["specialist_review"],
+      "input_kinds": [],
       "input_sources": [],
       "limitations": ["No implementation or inspectable Figma values were supplied"]
     }
@@ -84,9 +88,13 @@ Record optional specialist routing without making the report dependent on any pl
 Allowed values:
 
 - `status`: `used`, `skipped`, `unavailable`
+- `invocation`: `explicit`, `automatic`
 - `purposes`: `evidence_capture`, `candidate_findings`, `specialist_review`, `validation_plan`, `research_synthesis`, `ideation`, `handoff`, `implementation_qa`
+- `input_kinds`: `static_screenshot`, `video`, `figma`, `live_flow`, `design_system`, `research_data`, `implementation`, `other`
 
 Use stable pass IDs such as `P-01`. `provider` and `capability` describe the capability actually used, not the capability requested. A skipped or unavailable pass cannot be cited as a finding source.
+
+For a readable static screenshot, an explicitly requested Product Design `audit` is `used`, not `skipped`. Record static-input limits in `limitations`; handle overlap with the core review during finding consolidation. The validator rejects `skipped` for an explicit Product Design `audit` whose `input_kinds` includes `static_screenshot`; use `unavailable` only when the capability itself cannot run.
 
 ## Scope dimensions
 
@@ -193,7 +201,7 @@ Run `python3 scripts/review_score.py <review.json> --write`. The script adds:
     "score_confidence": 0.77,
     "dimension_scores": {},
     "scoring_profile": "wira-v2",
-    "scoring_version": "1.3"
+    "scoring_version": "1.4"
   }
 }
 ```

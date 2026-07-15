@@ -15,17 +15,32 @@ Use external design capabilities as scoped expert passes around the Wira review 
 
 Do not run multiple generic critique passes merely to create apparent consensus. Add a specialist only when it contributes a different evidence source, checklist, or deliverable.
 
+Explicit invocation overrides automatic pass minimization. If the user explicitly invokes Product Design for a review and the capability is available, run the applicable focused skill before consolidation. Similarity to the Wira core is handled by merging duplicate findings afterward; it is never a reason to mark the requested pass `skipped`.
+
 ## Codex Product Design adapter
 
 | Capability | Use in this workflow | Trigger | Boundary |
 |---|---|---|---|
-| `audit` | Capture and inspect a real flow step by step; contribute UX, visual, and accessibility candidates tied to accepted screenshots | A live/clickable flow needs capture, or the user explicitly invokes Product Design for an audit | Accepted screenshots become evidence; its concise report does not replace Wira coverage tables or scoring |
+| `audit` | Inspect one supplied static screen or capture a real flow step by step; contribute UX, visual, and accessibility candidates tied to accepted screenshots | The user explicitly invokes Product Design for a screen or flow audit, or a live experience benefits from screenshot capture | A static screen becomes one numbered step; its concise report does not replace Wira coverage tables or scoring |
 | `research` | Research current user problems before defining a redesign opportunity | The user explicitly requests external UX research and current sources are available | Research is context, not direct proof that the supplied design solves the problem |
 | `ideate` | Generate visual alternatives after root issues and the brief are clear | The user asks for redesign directions or variants | Keep outside the current design score; review generated directions as new artifacts in a later pass |
 | `design-qa` | Compare a coded prototype with its selected visual source | An implementation and matched source visual both exist | This is implementation fidelity, not a substitute for product-quality review |
 | `image-to-code`, `url-to-code`, `share` | Build or share an approved direction | The user explicitly requests implementation or sharing | Follow-on delivery only; never trigger during a review-only request |
 
 When Product Design is explicitly invoked, follow its current router and focused skill instructions. If it requires browser capture, preserve its accepted screenshots, step order, and capture limitations in the Wira evidence pack.
+
+### Static screenshot protocol
+
+A static screenshot is a valid Product Design `audit` input. It does not require a clickable prototype or browser session.
+
+1. Treat each user-supplied screenshot in the current request as a numbered audit step, starting with `Step 1`.
+2. Inspect the exact supplied image and reject it only when it is unreadable, blank, corrupted, or not the requested product surface.
+3. Render or cite the accepted image in the audit output and tie every Product Design candidate to that step.
+4. Review visible first impression, hierarchy, comprehension, consistency, content, and visible accessibility risks.
+5. Mark interaction behavior, navigation outcomes, motion, loading, errors, focus order, screen-reader output, and unshown states as unsupported rather than failed.
+6. Log the Product Design pass as `used`. State `single static screenshot` in its limitations and describe the candidate contribution range.
+
+Do not mark a readable static screenshot pass `skipped` because the core review covers similar dimensions. Deduplicate shared observations during Wira consolidation and keep both pass IDs only when both materially contributed to the final finding.
 
 ## Claude Design adapter
 
@@ -46,7 +61,7 @@ Claude command names and installed-skill names may differ by host version. Route
 | Stage | Required core | Optional capability |
 |---|---|---|
 | Objective and scope | Goal contract, baseline, Wira context | Product Design research only when explicitly requested |
-| Evidence acquisition | Screenshot/video/Figma inspection | Product Design audit for live-flow capture |
+| Evidence acquisition | Screenshot/video/Figma inspection | Product Design audit for a supplied static screen or live-flow capture |
 | Main review | Wira multi-scale and color passes | Claude design-critique for an independent high-stakes pass |
 | Specialist verification | Wira evidence and status rules | Accessibility, design-system, or UX-copy pass when triggered |
 | Consolidation and score | Wira schema, deduplication, deterministic scorer | No external score import |
@@ -57,6 +72,7 @@ Claude command names and installed-skill names may differ by host version. Route
 ## Failure and availability rules
 
 - Do not install, enable, or call an external plugin without the user's request or the host's normal capability rules.
+- Do not skip an explicitly requested, available Product Design audit merely because the input is static or the Wira core covers similar topics.
 - If a named capability is unavailable, set the pass to `unavailable`, state the missing capability, and continue with the Wira core.
 - If required inputs are absent, set the pass to `skipped` and name the missing input rather than simulating the specialist result.
 - If two passes conflict, prefer stronger direct evidence. Otherwise preserve both as tentative interpretations and create a validation hypothesis.

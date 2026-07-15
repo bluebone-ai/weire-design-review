@@ -21,6 +21,7 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
 
 - Keep this skill's evidence rules, Wira brand standard, finding consolidation, and score as the authority.
 - Select the smallest useful set of specialist passes. Do not run every available capability by default.
+- Honor an explicit Product Design invocation when the capability is available and the supplied artifact is readable. Run the pass first and deduplicate its output later; overlap with the core review is not a skip reason.
 - Treat specialist output as candidate findings or follow-on material until it is checked against accepted evidence and normalized into this skill's schema.
 - Continue with the core workflow when an optional capability is unavailable. Record the unavailable or skipped pass; do not imply that it ran.
 - Do not start ideation, research, implementation, or handoff merely because those capabilities exist. Use them only when the user requests that stage or it is necessary for the declared review goal.
@@ -51,7 +52,8 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
    - Follow [review-framework.md](references/review-framework.md). Record strengths as well as problems.
 5. Run selected specialist passes.
    - Follow [capability-orchestration.md](references/capability-orchestration.md) and record each considered pass in `capability_passes`.
-   - Use Product Design `audit` for screenshot-first flow capture when available and applicable; keep accepted captures in the normal evidence set.
+   - Use Product Design `audit` for an accepted static screenshot, a single screen, or a screenshot-first flow when available and applicable; keep accepted images in the normal evidence set.
+   - When Product Design is explicitly invoked for a readable static screenshot, run it as a one-step audit and mark interaction, motion, unshown states, and full accessibility compliance unsupported.
    - Use Claude Design critique, accessibility, design-system, or UX-copy capabilities only for their scoped expert checks.
    - Map accepted specialist contributions to `source_pass_ids`. A specialist label never substitutes for evidence.
 6. Separate conclusions by evidence type.
