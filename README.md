@@ -97,3 +97,21 @@ python3 plugins/weire-design-review/skills/weire-design-review/scripts/review_sc
 ```
 
 报告 JSON 需符合 `plugins/weire-design-review/skills/weire-design-review/references/result-schema.md`。评分仅汇总有证据支持且适用的维度；缺少证据的维度使用 `N/A`，不会被当作零分。
+
+## 发布与更新
+
+先用 dry run 检查下一版本，再执行正式发版：
+
+```bash
+./scripts/release.sh patch --dry-run
+./scripts/release.sh patch
+```
+
+`patch`、`minor`、`major` 遵循语义化版本。正式发版会要求工作区干净，同步更新 Codex 与 Claude 版本，运行便携校验及本机可用的官方校验器，创建版本提交和 Git Tag，原子推送到 GitHub，并更新本机两端安装。
+
+可选参数：
+
+- `--no-push`：只创建本地发布提交和 Tag
+- `--skip-local-update`：不更新本机 Codex 与 Claude 安装
+
+每次 Push 和 Pull Request 还会通过 GitHub Actions 检查双平台版本一致性、Marketplace 路径、Skill 结构、本地 Markdown 引用和评分脚本语法。
