@@ -1,6 +1,6 @@
 ---
 name: weire-design-review
-description: Evidence-based design review for 微热/Weire/Wira/Laboo mobile product screenshots, screen recordings, production baselines, design systems, exported design files, or Figma links. Use when Codex is asked to 评审微热设计稿、比较微热新版和线上版、审查首页/房间/社交流程、检查品牌与设计系统、分析交互视频、评价 Figma 页面或生成微热设计评分。 Orchestrates optional Codex Product Design or Claude Design specialist capabilities when available, while keeping Wira evidence rules and deterministic scoring authoritative.
+description: Evidence-based design review for 微热/Weire/Wira/Laboo mobile product screenshots, screen recordings, production baselines, design systems, exported design files, or Figma links. Use when Codex or Claude is asked to 评审微热设计稿、比较微热新版和线上版、审查首页/房间/社交流程、检查品牌与设计系统、分析交互视频、评价 Figma 页面或生成微热设计评分。 Orchestrates optional Codex Product Design or Claude Design specialist capabilities when available, while keeping Wira evidence rules and deterministic scoring authoritative.
 ---
 
 # Weire Design Review
@@ -21,7 +21,7 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
 
 - Keep this skill's evidence rules, Wira brand standard, finding consolidation, and score as the authority.
 - Select the smallest useful set of specialist passes. Do not run every available capability by default.
-- Honor an explicit Product Design invocation when the capability is available and the supplied artifact is readable. Run the pass first and deduplicate its output later; overlap with the core review is not a skip reason.
+- Honor an explicit Product Design or Claude Design invocation when the matching host capability is available and the supplied artifact is readable. Run the pass first and deduplicate its output later; overlap with the core review is not a skip reason.
 - Treat specialist output as candidate findings or follow-on material until it is checked against accepted evidence and normalized into this skill's schema.
 - Continue with the core workflow when an optional capability is unavailable. Record the unavailable or skipped pass; do not imply that it ran.
 - Do not start ideation, research, implementation, or handoff merely because those capabilities exist. Use them only when the user requests that stage or it is necessary for the declared review goal.

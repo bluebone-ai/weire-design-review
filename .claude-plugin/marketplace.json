@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-marketplace.json",
+  "name": "bluebone-ai",
+  "owner": {
+    "name": "BlueBone AI"
+  },
+  "description": "BlueBone AI product and design workflow plugins.",
+  "plugins": [
+    {
+      "name": "weire-design-review",
+      "source": "./plugins/weire-design-review",
+      "description": "Evidence-based mobile design review for Weire/Wira/Laboo.",
+      "category": "Design"
+    }
+  ]
+}

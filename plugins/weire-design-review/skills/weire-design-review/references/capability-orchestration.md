@@ -29,7 +29,19 @@ Summarize specialist output; do not paste the full plugin response or hidden rea
 
 Use stable synthesis IDs such as `SI-001`. Keep `summary` concise and evidence-oriented so readers can understand the specialist's contribution without reopening its raw response.
 
-Explicit invocation overrides automatic pass minimization. If the user explicitly invokes Product Design for a review and the capability is available, run the applicable focused skill before consolidation. Similarity to the Wira core is handled by merging duplicate findings afterward; it is never a reason to mark the requested pass `skipped`.
+Explicit invocation overrides automatic pass minimization. If the user explicitly invokes Product Design or Claude Design for a review and the matching host capability is available, run the applicable focused skill before consolidation. Similarity to the Wira core is handled by merging duplicate findings afterward; it is never a reason to mark the requested pass `skipped`.
+
+## Host routing
+
+Use the capability exposed by the current host. Do not pretend to call a plugin that is not installed or visible in the session.
+
+| Host | Preferred pass | Typical registered name | Result handling |
+|---|---|---|---|
+| Codex | Product Design screenshot or flow audit | `product-design:audit` | Normalize candidates into `specialist_synthesis`, then merge verified items into final findings or strengths |
+| Claude | Design critique | `design:design-critique` | Normalize candidates into `specialist_synthesis`, then merge verified items into final findings or strengths |
+| Claude | Focused specialist pass | `design:accessibility-review`, `design:design-system`, `design:ux-copy`, `design:user-research`, `design:research-synthesis`, or `design:design-handoff` | Use only when its trigger and inputs are present; never import its score directly |
+
+Plugin namespacing is host-managed. In Claude Code, an explicitly invoked skill normally appears as `/design:design-critique`; automatic routing may invoke the same registered skill without a slash command. In Codex, follow the currently exposed Product Design router and focused skill. The shared report contract is identical on both hosts.
 
 ## Codex Product Design adapter
 
@@ -68,7 +80,7 @@ Do not mark a readable static screenshot pass `skipped` because the core review 
 | `research-synthesis` | Convert real transcripts, surveys, usability notes, tickets, or NPS data into evidence-backed themes | Raw research data is supplied or connected | Never invent participants, prevalence, quotes, or behavioral evidence |
 | `design-handoff` | Produce specs after a direction passes review | The user confirms a direction is ready for engineering | Follow-on deliverable; unresolved major findings and unknown states must remain visible |
 
-Claude command names and installed-skill names may differ by host version. Route by capability purpose rather than assuming an exact slash command.
+The names above match the inspected official Design plugin snapshot. If a later installed version exposes different names, route by capability purpose and record the actual registered name in the capability-pass log.
 
 ## Default routing by review stage
 
