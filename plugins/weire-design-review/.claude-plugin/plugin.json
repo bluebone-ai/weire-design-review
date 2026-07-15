@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin.json",
   "name": "weire-design-review",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Evidence-based mobile design review for Weire/Wira/Laboo, with goal, brand, design-system, specialist-pass, and deterministic-scoring support.",
   "author": {
     "name": "BlueBone AI",
