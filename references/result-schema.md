@@ -4,6 +4,7 @@
 
 - Review and context
 - Capability passes
+- Specialist synthesis
 - Scope dimensions
 - Findings and deltas
 - Validation hypotheses
@@ -80,6 +81,17 @@ Record optional specialist routing without making the report dependent on any pl
       "input_kinds": [],
       "input_sources": [],
       "limitations": ["No implementation or inspectable Figma values were supplied"]
+    },
+    {
+      "id": "C-01",
+      "provider": "claude-design",
+      "capability": "design-critique",
+      "invocation": "explicit",
+      "status": "used",
+      "purposes": ["candidate_findings", "specialist_review"],
+      "input_kinds": ["static_screenshot"],
+      "input_sources": ["candidate-home-static"],
+      "limitations": ["Single static screenshot; interaction behavior and unshown states are unsupported"]
     }
   ]
 }
@@ -95,6 +107,50 @@ Allowed values:
 Use stable pass IDs such as `P-01`. `provider` and `capability` describe the capability actually used, not the capability requested. A skipped or unavailable pass cannot be cited as a finding source.
 
 For a readable static screenshot, an explicitly requested Product Design `audit` is `used`, not `skipped`. Record static-input limits in `limitations`; handle overlap with the core review during finding consolidation. The validator rejects `skipped` for an explicit Product Design `audit` whose `input_kinds` includes `static_screenshot`; use `unavailable` only when the capability itself cannot run.
+
+## Specialist synthesis
+
+For every used pass whose purposes include `candidate_findings` or `specialist_review`, summarize the material conclusions and their final disposition.
+
+```json
+{
+  "specialist_synthesis": [
+    {
+      "id": "SI-001",
+      "source_pass_id": "P-01",
+      "summary": "The promoted entrance is visually dominant but its illustration does not fully explain the masquerade interaction",
+      "disposition": "adopted",
+      "target_refs": [{"type": "finding", "id": "F-001"}],
+      "rationale": "Verified on the supplied screenshot and consolidated with the core semantic check"
+    },
+    {
+      "id": "SI-002",
+      "source_pass_id": "C-01",
+      "summary": "The warm purple-red palette may cue dating or livestream categories",
+      "disposition": "retained_for_validation",
+      "target_refs": [{"type": "validation_hypothesis", "id": "H-001"}],
+      "rationale": "Category association is plausible but requires a perception test"
+    },
+    {
+      "id": "SI-003",
+      "source_pass_id": "P-01",
+      "summary": "Add a persistent tooltip to every gameplay card",
+      "disposition": "not_adopted",
+      "target_refs": [],
+      "rationale": "The recommendation adds unsupported complexity and is not required by visible evidence"
+    }
+  ]
+}
+```
+
+Allowed values:
+
+- `disposition`: `adopted`, `retained_for_validation`, `not_adopted`
+- `target_refs.type`: `finding`, `strength`, `validation_hypothesis`
+
+`source_pass_id` must reference a `used` pass. `adopted` items target final findings or strengths. `retained_for_validation` items target tentative findings or validation hypotheses and never deduct score. `not_adopted` items have no target and require a clear rationale.
+
+Do not copy a plugin's raw score into this structure. Do not create one synthesis item per sentence; consolidate duplicates from the same pass into the smallest useful set of conclusions.
 
 ## Scope dimensions
 
@@ -129,9 +185,11 @@ Use the dimension IDs in `review-framework.md`. Non-applicable dimensions requir
 {
   "strengths": [
     {
+      "id": "W-001",
       "dimension": "design_system_evolution",
       "statement": "The candidate separates the neutral base from vivid room content",
       "delta": "better",
+      "source_pass_ids": ["core", "P-01"],
       "evidence": {"screen_id": "candidate-home", "description": "Room card region"}
     }
   ],
@@ -170,6 +228,8 @@ Evidence requires `screen_id` and `description`; it may also include `region`, `
 
 `source_pass_ids` is optional and defaults conceptually to `["core"]`. It may contain `core` and IDs of `used` entries in `capability_passes`. It records contribution provenance, not independent evidence and not extra scoring weight.
 
+Give strengths stable IDs such as `W-001` when a specialist synthesis item targets them.
+
 Tentative findings stay visible but do not reduce scores. Use tentative status for candidate brand principles or missing comparison context. The confirmed Wira charter may support confirmed `brand_alignment` findings in `wira-v2`.
 
 ## Validation hypotheses
@@ -183,7 +243,8 @@ Store product effects that require a prototype test or analytics separately from
       "id": "H-001",
       "hypothesis": "Because active room behavior is visible on cards, more users will enter based on shared activity",
       "primary_metric": "room_entry_rate",
-      "guardrails": ["post_entry_dwell", "gift_conversion"]
+      "guardrails": ["post_entry_dwell", "gift_conversion"],
+      "source_pass_ids": ["core", "C-01"]
     }
   ]
 }
@@ -201,7 +262,7 @@ Run `python3 scripts/review_score.py <review.json> --write`. The script adds:
     "score_confidence": 0.77,
     "dimension_scores": {},
     "scoring_profile": "wira-v2",
-    "scoring_version": "1.4"
+    "scoring_version": "1.5"
   }
 }
 ```
@@ -219,3 +280,5 @@ The scored JSON remains the source of truth. Render it with the seven fixed sect
 Render each item in `findings` as a detailed problem card following [report-template.md](report-template.md). Preserve the finding ID and keep evidence, impact, recommendation, and validation visibly separate. Priority recommendations summarize at most three root causes and do not replace the full cards.
 
 Render the coverage tables before the cards. Every visible region must appear in `Screen / Section Coverage`; use the component and state tables to show the depth inspected without creating extra scoring dimensions.
+
+Render `specialist_synthesis` as a compact appendix table before the capability-pass log. Readers must be able to trace adopted entries to final finding or strength IDs, retained entries to tentative findings or hypotheses, and rejected entries to an explicit rationale.

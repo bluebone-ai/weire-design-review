@@ -102,8 +102,19 @@ After the seven sections, include:
 5. detailed finding cards ordered by severity and task impact;
 6. validation hypotheses and target metrics;
 7. evidence limitations and untested areas;
-8. capability-pass log with provider, purpose, status, inputs, contribution scope, and limitations;
-9. saved artifact locations.
+8. specialist capability synthesis with adopted, retained, and not-adopted conclusions;
+9. capability-pass log with provider, purpose, status, inputs, contribution scope, and limitations;
+10. saved artifact locations.
+
+Render the specialist synthesis as:
+
+| ID | Source pass | Specialist conclusion | Disposition | Report destination | Rationale |
+|---|---|---|---|---|---|
+| SI-001 | P-01 / Product Design audit | The promoted entrance is dominant but its illustration is semantically incomplete | Adopted | F-003 | Verified on CAND-HOME-01 and merged with the core finding |
+| SI-002 | C-01 / Claude Design critique | The palette may cue dating-category associations | Retained for validation | H-001 | Requires a target-user perception test |
+| SI-003 | P-01 / Product Design audit | Add persistent tooltips to all gameplay cards | Not adopted | — | Adds unsupported complexity |
+
+Keep this table concise, but do not omit a used critique pass because its candidates were rejected. Do not paste raw plugin responses. The final report remains authoritative; this table explains how specialist material was handled.
 
 Render the capability-pass log as:
 
@@ -118,4 +129,5 @@ Render the capability-pass log as:
 - `Visual Hierarchy`, `Consistency`, and `Accessibility` expose their underlying dimension scores where an exact mapping exists.
 - Use `N/A` rather than an inferred pass when evidence or redesign context is insufficient.
 - Show specialist provenance through `source_pass_ids`, but never use the number of agreeing passes as evidence strength or an extra deduction.
+- Map every adopted or retained synthesis item to a stable finding, strength, or hypothesis ID. Keep not-adopted items visible with an explicit rationale and no score effect.
 - Mark an explicitly requested Product Design audit of a readable static screenshot as `Used`; describe unsupported interaction evidence in `限制`, and deduplicate overlapping findings after the pass runs.

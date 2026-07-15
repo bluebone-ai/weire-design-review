@@ -11,9 +11,23 @@ Use external design capabilities as scoped expert passes around the Wira review 
 5. Verify each candidate against an accepted screenshot, video frame, Figma node, implementation state, design-system rule, or research record.
 6. Merge duplicate symptoms into one root finding and assign one primary scoring dimension.
 7. Add the contributing pass IDs to `source_pass_ids`; use `core` for the Wira review itself.
-8. Score only the normalized final findings. Never average, add, or compare scores emitted by other plugins.
+8. Add every materially distinct specialist conclusion to `specialist_synthesis` and record whether it was adopted, retained for validation, or not adopted.
+9. Score only the normalized final findings. Never average, add, or compare scores emitted by other plugins.
 
 Do not run multiple generic critique passes merely to create apparent consensus. Add a specialist only when it contributes a different evidence source, checklist, or deliverable.
+
+## Specialist synthesis contract
+
+Summarize specialist output; do not paste the full plugin response or hidden reasoning into the report.
+
+- Create one `specialist_synthesis` item for each materially distinct conclusion from a used critique or specialist-review pass.
+- Use `adopted` when the conclusion is verified and merged into a final finding or strength. Point `target_refs` to those final IDs and include the pass ID in each target's `source_pass_ids`.
+- Use `retained_for_validation` when the conclusion is useful but needs missing states, measurements, prototype behavior, user perception, or analytics. Point it to a tentative finding or validation hypothesis; it does not deduct score.
+- Use `not_adopted` when the conclusion is unverifiable, outside scope, superseded by stronger evidence, or adds no material value after deduplication. Leave `target_refs` empty and state the reason in `rationale`.
+- Preserve conflicting interpretations as retained items unless direct evidence clearly resolves the conflict. Agreement between plugins increases review breadth, not evidence confidence.
+- Ensure every used pass whose purpose includes `candidate_findings` or `specialist_review` has at least one synthesis item, even when none of its candidates are adopted.
+
+Use stable synthesis IDs such as `SI-001`. Keep `summary` concise and evidence-oriented so readers can understand the specialist's contribution without reopening its raw response.
 
 Explicit invocation overrides automatic pass minimization. If the user explicitly invokes Product Design for a review and the capability is available, run the applicable focused skill before consolidation. Similarity to the Wira core is handled by merging duplicate findings afterward; it is never a reason to mark the requested pass `skipped`.
 

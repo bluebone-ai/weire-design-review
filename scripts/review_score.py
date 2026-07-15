@@ -78,6 +78,8 @@ CAPABILITY_INPUT_KINDS = {
     "implementation",
     "other",
 }
+SPECIALIST_DISPOSITIONS = {"adopted", "retained_for_validation", "not_adopted"}
+SPECIALIST_TARGET_TYPES = {"finding", "strength", "validation_hypothesis"}
 
 
 class ReviewValidationError(ValueError):
@@ -139,6 +141,7 @@ def validate_review(data: Any) -> dict[str, Any]:
     capability_passes = data.get("capability_passes", [])
     require(isinstance(capability_passes, list), "capability_passes must be an array")
     pass_statuses: dict[str, str] = {}
+    pass_purposes: dict[str, set[str]] = {}
     for index, capability_pass in enumerate(capability_passes):
         prefix = f"capability_passes[{index}]"
         require(isinstance(capability_pass, dict), f"{prefix} must be an object")
@@ -157,6 +160,7 @@ def validate_review(data: Any) -> dict[str, Any]:
         validate_text_list(purposes, f"{prefix}.purposes", allow_empty=False)
         require(len(purposes) == len(set(purposes)), f"{prefix}.purposes must not contain duplicates")
         require(set(purposes) <= CAPABILITY_PASS_PURPOSES, f"{prefix}.purposes contains an invalid value")
+        pass_purposes[pass_id] = set(purposes)
         input_kinds = capability_pass.get("input_kinds", [])
         validate_text_list(input_kinds, f"{prefix}.input_kinds")
         require(len(input_kinds) == len(set(input_kinds)), f"{prefix}.input_kinds must not contain duplicates")
@@ -200,9 +204,15 @@ def validate_review(data: Any) -> dict[str, Any]:
 
     strengths = data.get("strengths", [])
     require(isinstance(strengths, list), "strengths must be an array")
+    strengths_by_id: dict[str, dict[str, Any]] = {}
     for index, strength in enumerate(strengths):
         prefix = f"strengths[{index}]"
         require(isinstance(strength, dict), f"{prefix} must be an object")
+        if "id" in strength:
+            strength_id = strength["id"]
+            validate_text(strength_id, f"{prefix}.id")
+            require(strength_id not in strengths_by_id, f"duplicate strength id: {strength_id}")
+            strengths_by_id[strength_id] = strength
         require(strength.get("dimension") in weights, f"{prefix}.dimension is invalid for {profile_name}")
         validate_text(strength.get("statement"), f"{prefix}.statement")
         require(isinstance(strength.get("evidence"), dict), f"{prefix}.evidence must be an object")
@@ -214,6 +224,7 @@ def validate_review(data: Any) -> dict[str, Any]:
     findings = data.get("findings")
     require(isinstance(findings, list), "findings must be an array")
     seen_ids: set[str] = set()
+    findings_by_id: dict[str, dict[str, Any]] = {}
     for index, finding in enumerate(findings):
         prefix = f"findings[{index}]"
         require(isinstance(finding, dict), f"{prefix} must be an object")
@@ -221,6 +232,7 @@ def validate_review(data: Any) -> dict[str, Any]:
         validate_text(finding_id, f"{prefix}.id")
         require(finding_id not in seen_ids, f"duplicate finding id: {finding_id}")
         seen_ids.add(finding_id)
+        findings_by_id[finding_id] = finding
         dimension = finding.get("dimension")
         require(dimension in weights, f"{prefix}.dimension is invalid for {profile_name}")
         require(dimensions[dimension]["applicable"], f"{prefix} uses non-applicable dimension {dimension}")
@@ -249,12 +261,86 @@ def validate_review(data: Any) -> dict[str, Any]:
 
     hypotheses = data.get("validation_hypotheses", [])
     require(isinstance(hypotheses, list), "validation_hypotheses must be an array")
+    hypotheses_by_id: dict[str, dict[str, Any]] = {}
     for index, hypothesis in enumerate(hypotheses):
         prefix = f"validation_hypotheses[{index}]"
         require(isinstance(hypothesis, dict), f"{prefix} must be an object")
         for field in ("id", "hypothesis", "primary_metric"):
             validate_text(hypothesis.get(field), f"{prefix}.{field}")
+        hypothesis_id = hypothesis["id"]
+        require(hypothesis_id not in hypotheses_by_id, f"duplicate validation hypothesis id: {hypothesis_id}")
+        hypotheses_by_id[hypothesis_id] = hypothesis
         require(isinstance(hypothesis.get("guardrails", []), list), f"{prefix}.guardrails must be an array")
+        if "source_pass_ids" in hypothesis:
+            validate_source_pass_ids(hypothesis["source_pass_ids"], f"{prefix}.source_pass_ids")
+
+    specialist_synthesis = data.get("specialist_synthesis", [])
+    require(isinstance(specialist_synthesis, list), "specialist_synthesis must be an array")
+    synthesis_ids: set[str] = set()
+    synthesized_pass_ids: set[str] = set()
+    for index, item in enumerate(specialist_synthesis):
+        prefix = f"specialist_synthesis[{index}]"
+        require(isinstance(item, dict), f"{prefix} must be an object")
+        synthesis_id = item.get("id")
+        validate_text(synthesis_id, f"{prefix}.id")
+        require(synthesis_id not in synthesis_ids, f"duplicate specialist synthesis id: {synthesis_id}")
+        synthesis_ids.add(synthesis_id)
+        source_pass_id = item.get("source_pass_id")
+        validate_text(source_pass_id, f"{prefix}.source_pass_id")
+        require(source_pass_id in pass_statuses, f"{prefix}.source_pass_id references unknown pass {source_pass_id}")
+        require(pass_statuses[source_pass_id] == "used", f"{prefix}.source_pass_id references non-used pass {source_pass_id}")
+        synthesized_pass_ids.add(source_pass_id)
+        for field in ("summary", "rationale"):
+            validate_text(item.get(field), f"{prefix}.{field}")
+        disposition = item.get("disposition")
+        require(disposition in SPECIALIST_DISPOSITIONS, f"{prefix}.disposition is invalid")
+        target_refs = item.get("target_refs")
+        require(isinstance(target_refs, list), f"{prefix}.target_refs must be an array")
+        if disposition == "not_adopted":
+            require(len(target_refs) == 0, f"{prefix}.target_refs must be empty when disposition is not_adopted")
+        else:
+            require(len(target_refs) > 0, f"{prefix}.target_refs must not be empty when disposition is {disposition}")
+
+        seen_target_refs: set[tuple[str, str]] = set()
+        for target_index, target_ref in enumerate(target_refs):
+            target_prefix = f"{prefix}.target_refs[{target_index}]"
+            require(isinstance(target_ref, dict), f"{target_prefix} must be an object")
+            target_type = target_ref.get("type")
+            target_id = target_ref.get("id")
+            require(target_type in SPECIALIST_TARGET_TYPES, f"{target_prefix}.type is invalid")
+            validate_text(target_id, f"{target_prefix}.id")
+            target_key = (target_type, target_id)
+            require(target_key not in seen_target_refs, f"{prefix}.target_refs must not contain duplicates")
+            seen_target_refs.add(target_key)
+
+            if target_type == "finding":
+                require(target_id in findings_by_id, f"{target_prefix} references unknown finding {target_id}")
+                target = findings_by_id[target_id]
+            elif target_type == "strength":
+                require(target_id in strengths_by_id, f"{target_prefix} references unknown strength {target_id}")
+                target = strengths_by_id[target_id]
+            else:
+                require(target_id in hypotheses_by_id, f"{target_prefix} references unknown validation hypothesis {target_id}")
+                target = hypotheses_by_id[target_id]
+
+            target_source_pass_ids = target.get("source_pass_ids", ["core"])
+            require(source_pass_id in target_source_pass_ids, f"{target_prefix} target must cite source pass {source_pass_id}")
+            if disposition == "adopted":
+                require(target_type in {"finding", "strength"}, f"{target_prefix} adopted items may target only findings or strengths")
+                if target_type == "finding":
+                    require(target.get("status") == "confirmed", f"{target_prefix} adopted finding must have confirmed status")
+            elif disposition == "retained_for_validation":
+                require(target_type in {"finding", "validation_hypothesis"}, f"{target_prefix} retained items may target only tentative findings or validation hypotheses")
+                if target_type == "finding":
+                    require(target.get("status") == "tentative", f"{target_prefix} retained finding must have tentative status")
+
+    synthesis_required_pass_ids = {
+        pass_id
+        for pass_id, status in pass_statuses.items()
+        if status == "used" and pass_purposes[pass_id] & {"candidate_findings", "specialist_review"}
+    }
+    missing_synthesis = sorted(synthesis_required_pass_ids - synthesized_pass_ids)
+    require(not missing_synthesis, f"specialist_synthesis is required for used review passes: {missing_synthesis}")
 
     return data
 
@@ -324,7 +410,7 @@ def score_review(data: dict[str, Any]) -> dict[str, Any]:
         "score_confidence": round(score_confidence, 2),
         "dimension_scores": dimension_scores,
         "scoring_profile": profile_name,
-        "scoring_version": "1.4",
+        "scoring_version": "1.5",
     }
 
 

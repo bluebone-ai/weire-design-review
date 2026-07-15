@@ -56,6 +56,7 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
    - When Product Design is explicitly invoked for a readable static screenshot, run it as a one-step audit and mark interaction, motion, unshown states, and full accessibility compliance unsupported.
    - Use Claude Design critique, accessibility, design-system, or UX-copy capabilities only for their scoped expert checks.
    - Map accepted specialist contributions to `source_pass_ids`. A specialist label never substitutes for evidence.
+   - Record each materially distinct specialist conclusion in `specialist_synthesis`: map adopted conclusions to final findings or strengths, retain uncertain conclusions as tentative findings or validation hypotheses, and state why rejected conclusions were not used.
 6. Separate conclusions by evidence type.
    - `confirmed`: directly supported by the inspected artifact, baseline, confirmed design system, or confirmed product principle.
    - `tentative`: plausible but depends on missing context or an unconfirmed product principle. Do not deduct score.
@@ -111,6 +112,6 @@ After the seven summary sections, render every finding as a numbered detail card
 
 Before the finding cards, render screen/section coverage, component/element audit, and relevant state/edge-case tables. Apply these to every scene, not only repeated cards or collections.
 
-In the appendix, render the capability-pass log so readers can distinguish the core review from optional specialist contributions and see which capabilities were unavailable or deliberately skipped.
+In the appendix, render the specialist synthesis before the capability-pass log. Show what each used specialist contributed, where it entered the report, and why a candidate was retained or rejected. Then render the capability-pass log so readers can distinguish the core review from optional specialist contributions and see which capabilities were unavailable or deliberately skipped.
 
 Use `N/A` for unsupported dimensions. Never represent `N/A` as zero.
