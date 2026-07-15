@@ -71,6 +71,10 @@ def validate_manifests() -> str:
     claude_marketplace = load_json(CLAUDE_MARKETPLACE)
     require(codex_marketplace.get("name") == "bluebone-ai", "Codex marketplace name must be bluebone-ai")
     require(claude_marketplace.get("name") == "bluebone-ai", "Claude marketplace name must be bluebone-ai")
+    require(
+        "knowledge-work-plugins" in claude_marketplace.get("allowCrossMarketplaceDependenciesOn", []),
+        "Claude marketplace must allow the official Design dependency",
+    )
     codex_entry = marketplace_entry(codex_marketplace, CODEX_MARKETPLACE)
     claude_entry = marketplace_entry(claude_marketplace, CLAUDE_MARKETPLACE)
     require(
@@ -78,6 +82,9 @@ def validate_manifests() -> str:
         "Codex marketplace source is invalid",
     )
     require(claude_entry.get("source") == "./plugins/weire-design-review", "Claude marketplace source is invalid")
+    design_dependency = {"name": "design", "marketplace": "knowledge-work-plugins"}
+    require(design_dependency in claude_entry.get("dependencies", []), "Claude marketplace Design dependency is missing")
+    require(design_dependency in claude.get("dependencies", []), "Claude plugin Design dependency is missing")
     return codex["version"]
 
 
@@ -92,6 +99,7 @@ def validate_skill() -> None:
     require(re.search(r"^description:\s*\S.+$", frontmatter, re.MULTILINE) is not None, "SKILL.md description is missing")
     require((SKILL / "agents" / "openai.yaml").is_file(), "agents/openai.yaml is missing")
     require(SCORER.is_file(), "review_score.py is missing")
+    require("host-native baseline pass" in text, "SKILL.md must require the host-native design expert baseline")
 
     markdown_files = [skill_file, *sorted((SKILL / "references").glob("*.md"))]
     for markdown_file in markdown_files:

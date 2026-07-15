@@ -5,12 +5,21 @@
     "name": "BlueBone AI"
   },
   "description": "BlueBone AI product and design workflow plugins.",
+  "allowCrossMarketplaceDependenciesOn": [
+    "knowledge-work-plugins"
+  ],
   "plugins": [
     {
       "name": "weire-design-review",
       "source": "./plugins/weire-design-review",
       "description": "Evidence-based mobile design review for Weire/Wira/Laboo.",
-      "category": "Design"
+      "category": "Design",
+      "dependencies": [
+        {
+          "name": "design",
+          "marketplace": "knowledge-work-plugins"
+        }
+      ]
     }
   ]
 }

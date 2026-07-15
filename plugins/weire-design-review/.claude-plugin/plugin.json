@@ -15,5 +15,11 @@
     "wira",
     "laboo"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "dependencies": [
+    {
+      "name": "design",
+      "marketplace": "knowledge-work-plugins"
+    }
+  ]
 }

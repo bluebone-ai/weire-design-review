@@ -1,20 +1,35 @@
-# Optional capability orchestration
+# Required and optional capability orchestration
 
-Use external design capabilities as scoped expert passes around the Wira review core. They expand evidence or depth; they do not replace the confirmed product objective, Wira brand standard, baseline comparison, finding schema, or deterministic score.
+Use the host-native design expert as a required independent baseline around the Wira review core, then add scoped optional experts only when they expand evidence or depth. Specialists do not replace the confirmed product objective, Wira brand standard, baseline comparison, finding schema, or deterministic score.
+
+## Mandatory baseline passes
+
+Every review with at least one readable screenshot, accepted video frame, or inspectable Figma frame must log both baseline capabilities and successfully run the current host's native one.
+
+| Execution host | Required used pass | Required cross-host record |
+|---|---|---|
+| `codex` | `codex-product-design` / `audit` | `claude-design` / `design-critique` = `unavailable` |
+| `claude` | `claude-design` / `design-critique` | `codex-product-design` / `audit` = `unavailable` |
+| `other` | No native expert can be invoked | Both baseline passes = `unavailable`; do not produce a scored final report |
+
+Use `invocation: required` for both records. A readable static screenshot is sufficient input for either native baseline. Checklist overlap, routine review risk, or the Wira core's existing coverage is never a reason to skip the required pass.
+
+If the native pass is missing, disabled, or fails, stop before deterministic scoring. Explain how to restore the dependency and mark the review incomplete; do not silently downgrade it to a core-only review.
 
 ## Authority and normalization contract
 
 1. Run the Wira core intake and evidence check first.
-2. Select only capabilities whose trigger and required inputs are present.
-3. Record every used, skipped, or unavailable pass in `capability_passes`.
-4. Treat specialist output as candidate material.
-5. Verify each candidate against an accepted screenshot, video frame, Figma node, implementation state, design-system rule, or research record.
-6. Merge duplicate symptoms into one root finding and assign one primary scoring dimension.
-7. Add the contributing pass IDs to `source_pass_ids`; use `core` for the Wira review itself.
-8. Add every materially distinct specialist conclusion to `specialist_synthesis` and record whether it was adopted, retained for validation, or not adopted.
-9. Score only the normalized final findings. Never average, add, or compare scores emitted by other plugins.
+2. Run the mandatory host-native baseline pass against the accepted evidence.
+3. Select only additional capabilities whose trigger and required inputs are present.
+4. Record every required, used, skipped, or unavailable pass in `capability_passes`.
+5. Treat specialist output as candidate material.
+6. Verify each candidate against an accepted screenshot, video frame, Figma node, implementation state, design-system rule, or research record.
+7. Merge duplicate symptoms into one root finding and assign one primary scoring dimension.
+8. Add the contributing pass IDs to `source_pass_ids`; use `core` for the Wira review itself.
+9. Add every materially distinct specialist conclusion to `specialist_synthesis` and record whether it was adopted, retained for validation, or not adopted.
+10. Score only the normalized final findings. Never average, add, or compare scores emitted by other plugins.
 
-Do not run multiple generic critique passes merely to create apparent consensus. Add a specialist only when it contributes a different evidence source, checklist, or deliverable.
+After the mandatory baseline, do not run additional generic critique passes merely to create apparent consensus. Add an optional specialist only when it contributes a different evidence source, checklist, or deliverable. This minimization rule never suppresses the mandatory baseline.
 
 ## Specialist synthesis contract
 
@@ -29,16 +44,16 @@ Summarize specialist output; do not paste the full plugin response or hidden rea
 
 Use stable synthesis IDs such as `SI-001`. Keep `summary` concise and evidence-oriented so readers can understand the specialist's contribution without reopening its raw response.
 
-Explicit invocation overrides automatic pass minimization. If the user explicitly invokes Product Design or Claude Design for a review and the matching host capability is available, run the applicable focused skill before consolidation. Similarity to the Wira core is handled by merging duplicate findings afterward; it is never a reason to mark the requested pass `skipped`.
+Required and explicit invocations override optional pass minimization. Run the applicable focused skill before consolidation. Similarity to the Wira core is handled by merging duplicate findings afterward; it is never a reason to mark the pass `skipped`.
 
 ## Host routing
 
-Use the capability exposed by the current host. Do not pretend to call a plugin that is not installed or visible in the session.
+Use the capability exposed by the current host. Codex and Claude plugins cannot call each other across host boundaries, so do not pretend that the cross-host pass ran.
 
 | Host | Preferred pass | Typical registered name | Result handling |
 |---|---|---|---|
-| Codex | Product Design screenshot or flow audit | `product-design:audit` | Normalize candidates into `specialist_synthesis`, then merge verified items into final findings or strengths |
-| Claude | Design critique | `design:design-critique` | Normalize candidates into `specialist_synthesis`, then merge verified items into final findings or strengths |
+| Codex | Required Product Design screenshot or flow audit | `product-design:audit` | Must run before scoring; normalize candidates into `specialist_synthesis`, then merge verified items into final findings or strengths |
+| Claude | Required Design critique | `design:design-critique` | Must run before scoring; normalize candidates into `specialist_synthesis`, then merge verified items into final findings or strengths |
 | Claude | Focused specialist pass | `design:accessibility-review`, `design:design-system`, `design:ux-copy`, `design:user-research`, `design:research-synthesis`, or `design:design-handoff` | Use only when its trigger and inputs are present; never import its score directly |
 
 Plugin namespacing is host-managed. In Claude Code, an explicitly invoked skill normally appears as `/design:design-critique`; automatic routing may invoke the same registered skill without a slash command. In Codex, follow the currently exposed Product Design router and focused skill. The shared report contract is identical on both hosts.
@@ -47,13 +62,13 @@ Plugin namespacing is host-managed. In Claude Code, an explicitly invoked skill 
 
 | Capability | Use in this workflow | Trigger | Boundary |
 |---|---|---|---|
-| `audit` | Inspect one supplied static screen or capture a real flow step by step; contribute UX, visual, and accessibility candidates tied to accepted screenshots | The user explicitly invokes Product Design for a screen or flow audit, or a live experience benefits from screenshot capture | A static screen becomes one numbered step; its concise report does not replace Wira coverage tables or scoring |
+| `audit` | Inspect one supplied static screen or accepted frame, or capture a real flow step by step; contribute UX, visual, and accessibility candidates tied to accepted screenshots | Every readable design review executed on Codex | A static screen becomes one numbered step; its concise report does not replace Wira coverage tables or scoring |
 | `research` | Research current user problems before defining a redesign opportunity | The user explicitly requests external UX research and current sources are available | Research is context, not direct proof that the supplied design solves the problem |
 | `ideate` | Generate visual alternatives after root issues and the brief are clear | The user asks for redesign directions or variants | Keep outside the current design score; review generated directions as new artifacts in a later pass |
 | `design-qa` | Compare a coded prototype with its selected visual source | An implementation and matched source visual both exist | This is implementation fidelity, not a substitute for product-quality review |
 | `image-to-code`, `url-to-code`, `share` | Build or share an approved direction | The user explicitly requests implementation or sharing | Follow-on delivery only; never trigger during a review-only request |
 
-When Product Design is explicitly invoked, follow its current router and focused skill instructions. If it requires browser capture, preserve its accepted screenshots, step order, and capture limitations in the Wira evidence pack.
+Follow the current Product Design router and focused audit skill instructions. If it requires browser capture, preserve its accepted screenshots, step order, and capture limitations in the Wira evidence pack.
 
 ### Static screenshot protocol
 
@@ -64,7 +79,7 @@ A static screenshot is a valid Product Design `audit` input. It does not require
 3. Render or cite the accepted image in the audit output and tie every Product Design candidate to that step.
 4. Review visible first impression, hierarchy, comprehension, consistency, content, and visible accessibility risks.
 5. Mark interaction behavior, navigation outcomes, motion, loading, errors, focus order, screen-reader output, and unshown states as unsupported rather than failed.
-6. Log the Product Design pass as `used`. State `single static screenshot` in its limitations and describe the candidate contribution range.
+6. Log the Product Design pass as `used` with `invocation: required`. State `single static screenshot` in its limitations and describe the candidate contribution range.
 
 Do not mark a readable static screenshot pass `skipped` because the core review covers similar dimensions. Deduplicate shared observations during Wira consolidation and keep both pass IDs only when both materially contributed to the final finding.
 
@@ -72,7 +87,7 @@ Do not mark a readable static screenshot pass `skipped` because the core review 
 
 | Capability | Use in this workflow | Trigger | Boundary |
 |---|---|---|---|
-| `design-critique` | Independent usability, hierarchy, consistency, and first-impression pass | A high-stakes review needs a peer pass, or the user explicitly asks for Claude critique | Normalize and deduplicate; do not import its severity or score unchanged |
+| `design-critique` | Independent usability, hierarchy, consistency, and first-impression pass | Every readable design review executed on Claude | Required before scoring; normalize and deduplicate, and do not import its severity or score unchanged |
 | `accessibility-review` | Focused contrast, touch-target, readability, keyboard, and assistive-technology checklist | Accessibility is requested, the design is near handoff, or implementation/Figma data can support it | A screenshot supports visible risks only; never claim WCAG compliance without implementation and manual testing |
 | `design-system` | Audit tokens, components, variants, states, naming, and intentional extensions | A design system or inspectable Figma library is supplied, or the redesign introduces reusable patterns | Preserve Wira's `compliant / intentional_extension / undocumented_drift / violation` classification |
 | `ux-copy` | Review labels, CTAs, errors, empty states, onboarding, and localization pressure | Copy affects comprehension, tone, participation pressure, or layout resilience | Apply the confirmed Wira voice and product vocabulary before accepting alternatives |
@@ -87,8 +102,8 @@ The names above match the inspected official Design plugin snapshot. If a later 
 | Stage | Required core | Optional capability |
 |---|---|---|
 | Objective and scope | Goal contract, baseline, Wira context | Product Design research only when explicitly requested |
-| Evidence acquisition | Screenshot/video/Figma inspection | Product Design audit for a supplied static screen or live-flow capture |
-| Main review | Wira multi-scale and color passes | Claude design-critique for an independent high-stakes pass |
+| Evidence acquisition | Screenshot/video/Figma inspection | Required Product Design audit on Codex or required Claude design-critique on Claude |
+| Main review | Wira multi-scale and color passes | Optional focused accessibility, design-system, or UX-copy passes when triggered |
 | Specialist verification | Wira evidence and status rules | Accessibility, design-system, or UX-copy pass when triggered |
 | Consolidation and score | Wira schema, deduplication, deterministic scorer | No external score import |
 | Validation | Wira hypotheses and guardrail metrics | User-research plan or research synthesis with real data |
@@ -97,10 +112,11 @@ The names above match the inspected official Design plugin snapshot. If a later 
 
 ## Failure and availability rules
 
-- Do not install, enable, or call an external plugin without the user's request or the host's normal capability rules.
-- Do not skip an explicitly requested, available Product Design audit merely because the input is static or the Wira core covers similar topics.
-- If a named capability is unavailable, set the pass to `unavailable`, state the missing capability, and continue with the Wira core.
-- If required inputs are absent, set the pass to `skipped` and name the missing input rather than simulating the specialist result.
+- The user's invocation of this Plugin authorizes the required host-native baseline pass. Do not broaden that authorization to ideation, research, implementation, or handoff.
+- Do not skip a required Product Design audit or Claude design critique merely because the input is static, the review is routine, or the Wira core covers similar topics.
+- If the cross-host capability is unavailable, set it to `unavailable` and state the host boundary.
+- If the host-native required capability is unavailable or fails, stop before scoring and return an incomplete-review notice with the recovery action.
+- If required visual evidence is unreadable or absent, do not create a scored review. Optional passes with missing inputs may be `skipped` with the missing input named.
 - If two passes conflict, prefer stronger direct evidence. Otherwise preserve both as tentative interpretations and create a validation hypothesis.
 - Never present plugin agreement as user validation, analytics evidence, or proof of business impact.
 

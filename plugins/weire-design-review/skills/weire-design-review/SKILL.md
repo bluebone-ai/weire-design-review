@@ -1,6 +1,6 @@
 ---
 name: weire-design-review
-description: Evidence-based design review for 微热/Weire/Wira/Laboo mobile product screenshots, screen recordings, production baselines, design systems, exported design files, or Figma links. Use when Codex or Claude is asked to 评审微热设计稿、比较微热新版和线上版、审查首页/房间/社交流程、检查品牌与设计系统、分析交互视频、评价 Figma 页面或生成微热设计评分。 Orchestrates optional Codex Product Design or Claude Design specialist capabilities when available, while keeping Wira evidence rules and deterministic scoring authoritative.
+description: Evidence-based design review for 微热/Weire/Wira/Laboo mobile product screenshots, screen recordings, production baselines, design systems, exported design files, or Figma links. Use when Codex or Claude is asked to 评审微热设计稿、比较微热新版和线上版、审查首页/房间/社交流程、检查品牌与设计系统、分析交互视频、评价 Figma 页面或生成微热设计评分。 Requires Codex Product Design audit on Codex or Claude Design critique on Claude for every readable review, while keeping Wira evidence rules and deterministic scoring authoritative.
 ---
 
 # Weire Design Review
@@ -15,15 +15,19 @@ Run a repeatable mobile design review whose conclusions point to visible evidenc
 - Use `artifact` mode for one design source, `redesign-comparison` for current versus new, `flow-audit` for a task journey, and `direction-comparison` for A/B/C design directions.
 - Default Wira homepage optimization work to `redesign-comparison`. Follow [comparison-workflow.md](references/comparison-workflow.md).
 
-## Orchestrate optional specialist capabilities
+## Orchestrate required and optional specialist capabilities
 
 Read [capability-orchestration.md](references/capability-orchestration.md) whenever Codex Product Design, Claude Design, Figma, browser capture, research data, ideation, or developer handoff is available or requested.
 
 - Keep this skill's evidence rules, Wira brand standard, finding consolidation, and score as the authority.
-- Select the smallest useful set of specialist passes. Do not run every available capability by default.
+- Identify `review.execution_host` as `codex`, `claude`, or `other` before specialist routing.
+- Run the host-native baseline pass for every review with readable visual evidence: Product Design `audit` on Codex; Design `design-critique` on Claude. This pass is required even for a single static screenshot and even when its checklist overlaps the core review.
+- Record the other platform's baseline pass as `unavailable` because host plugins cannot be invoked across platforms. Do not call it `skipped`.
+- If the host-native baseline capability is missing, disabled, or fails, stop before scoring. State how to install or restore it and do not deliver a completed review.
+- After the required baseline, select the smallest useful set of additional specialist passes. Do not run every optional capability by default.
 - Honor an explicit Product Design or Claude Design invocation when the matching host capability is available and the supplied artifact is readable. Run the pass first and deduplicate its output later; overlap with the core review is not a skip reason.
 - Treat specialist output as candidate findings or follow-on material until it is checked against accepted evidence and normalized into this skill's schema.
-- Continue with the core workflow when an optional capability is unavailable. Record the unavailable or skipped pass; do not imply that it ran.
+- Continue with the core workflow when an additional optional capability is unavailable. Record the unavailable or skipped pass; do not imply that it ran.
 - Do not start ideation, research, implementation, or handoff merely because those capabilities exist. Use them only when the user requests that stage or it is necessary for the declared review goal.
 
 ## Core workflow
@@ -50,11 +54,12 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
    - Run [multi-scale-audit.md](references/multi-scale-audit.md) for every artifact. Review flow, screen, region, component, element/property, and state/boundary levels; record every visible region in the coverage table.
    - Run the mandatory color-perception pass in [color-perception-audit.md](references/color-perception-audit.md) whenever the task evaluates visual style, palette, brand direction, or a redesign.
    - Follow [review-framework.md](references/review-framework.md). Record strengths as well as problems.
-5. Run selected specialist passes.
+5. Run required and selected specialist passes.
    - Follow [capability-orchestration.md](references/capability-orchestration.md) and record each considered pass in `capability_passes`.
-   - Use Product Design `audit` for an accepted static screenshot, a single screen, or a screenshot-first flow when available and applicable; keep accepted images in the normal evidence set.
-   - When Product Design is explicitly invoked for a readable static screenshot, run it as a one-step audit and mark interaction, motion, unshown states, and full accessibility compliance unsupported.
-   - Use Claude Design critique, accessibility, design-system, or UX-copy capabilities only for their scoped expert checks.
+   - On Codex, load and run Product Design `audit` for accepted screenshots or screenshot-first flow steps before consolidation.
+   - On Claude, load and run Design `design-critique` against the same accepted evidence before consolidation.
+   - For a readable static screenshot, run the required baseline as a one-step critique and mark interaction, motion, unshown states, and full accessibility compliance unsupported.
+   - Use Claude accessibility, design-system, or UX-copy capabilities only for their additional scoped checks.
    - Map accepted specialist contributions to `source_pass_ids`. A specialist label never substitutes for evidence.
    - Record each materially distinct specialist conclusion in `specialist_synthesis`: map adopted conclusions to final findings or strengths, retain uncertain conclusions as tentative findings or validation hypotheses, and state why rejected conclusions were not used.
 6. Separate conclusions by evidence type.
@@ -115,6 +120,6 @@ After the seven summary sections, render every finding as a numbered detail card
 
 Before the finding cards, render screen/section coverage, component/element audit, and relevant state/edge-case tables. Apply these to every scene, not only repeated cards or collections.
 
-In the appendix, render the specialist synthesis before the capability-pass log. Show what each used specialist contributed, where it entered the report, and why a candidate was retained or rejected. Then render the capability-pass log so readers can distinguish the core review from optional specialist contributions and see which capabilities were unavailable or deliberately skipped.
+In the appendix, render the specialist synthesis before the capability-pass log. Show what each used specialist contributed, where it entered the report, and why a candidate was retained or rejected. Then render the capability-pass log so readers can confirm the host-native baseline actually ran, distinguish the core review from additional specialist contributions, and see which cross-host or optional capabilities were unavailable or deliberately skipped.
 
 Use `N/A` for unsupported dimensions. Never represent `N/A` as zero.

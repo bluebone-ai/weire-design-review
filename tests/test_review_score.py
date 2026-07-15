@@ -38,6 +38,62 @@ def finding(dimension: str, severity: str) -> dict:
     }
 
 
+def make_validated_review(execution_host: str = "codex") -> dict:
+    payload = make_review()
+    payload["review"].update(
+        {
+            "title": "Required specialist baseline smoke test",
+            "execution_host": execution_host,
+            "source_type": "screenshot",
+            "platform": "ios",
+            "core_task": "Find the primary action",
+        }
+    )
+    payload["scope"]["limitations"] = ["Static screenshot only"]
+    codex_status = "used" if execution_host == "codex" else "unavailable"
+    claude_status = "used" if execution_host == "claude" else "unavailable"
+    payload["capability_passes"] = [
+        {
+            "id": "P-01",
+            "provider": "codex-product-design",
+            "capability": "audit",
+            "invocation": "required",
+            "status": codex_status,
+            "purposes": ["candidate_findings", "specialist_review"],
+            "input_kinds": ["static_screenshot"] if codex_status == "used" else [],
+            "input_sources": ["SCREEN-01"] if codex_status == "used" else [],
+            "limitations": [
+                "Single static screenshot" if codex_status == "used" else "Product Design is unavailable outside Codex"
+            ],
+        },
+        {
+            "id": "C-01",
+            "provider": "claude-design",
+            "capability": "design-critique",
+            "invocation": "required",
+            "status": claude_status,
+            "purposes": ["candidate_findings", "specialist_review"],
+            "input_kinds": ["static_screenshot"] if claude_status == "used" else [],
+            "input_sources": ["SCREEN-01"] if claude_status == "used" else [],
+            "limitations": [
+                "Single static screenshot" if claude_status == "used" else "Claude Design is unavailable outside Claude"
+            ],
+        },
+    ]
+    native_pass_id = "P-01" if execution_host == "codex" else "C-01"
+    payload["specialist_synthesis"] = [
+        {
+            "id": "SI-001",
+            "source_pass_id": native_pass_id,
+            "summary": "The specialist pass found no additional material issue after evidence verification",
+            "disposition": "not_adopted",
+            "target_refs": [],
+            "rationale": "All useful observations were already represented by the accepted core evidence",
+        }
+    ]
+    return payload
+
+
 class DevelopmentReadinessTests(unittest.TestCase):
     def test_85_is_normal_development_line(self) -> None:
         findings = [finding(dimension, "moderate") for dimension in SCORER.PROFILES["generic-mobile-v1"]]
@@ -78,16 +134,7 @@ class DevelopmentReadinessTests(unittest.TestCase):
         self.assertEqual(scores["development_readiness"]["status"], "insufficient_evidence")
 
     def test_cli_writes_development_readiness(self) -> None:
-        payload = make_review()
-        payload["review"].update(
-            {
-                "title": "Development gate smoke test",
-                "source_type": "screenshot",
-                "platform": "ios",
-                "core_task": "Find the primary action",
-            }
-        )
-        payload["scope"]["limitations"] = ["Static screenshot only"]
+        payload = make_validated_review()
         with tempfile.TemporaryDirectory() as temp_dir:
             review_path = Path(temp_dir) / "review.json"
             review_path.write_text(json.dumps(payload), encoding="utf-8")
@@ -99,8 +146,30 @@ class DevelopmentReadinessTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             scored = json.loads(review_path.read_text(encoding="utf-8"))
-        self.assertEqual(scored["scores"]["scoring_version"], "1.6")
+        self.assertEqual(scored["scores"]["scoring_version"], "1.7")
         self.assertEqual(scored["scores"]["development_readiness"]["status"], "ready_for_development")
+
+
+class RequiredSpecialistPassTests(unittest.TestCase):
+    def test_codex_requires_product_design_audit(self) -> None:
+        payload = make_validated_review("codex")
+        SCORER.validate_review(payload)
+        payload["capability_passes"][0]["status"] = "unavailable"
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "host-native baseline"):
+            SCORER.validate_review(payload)
+
+    def test_claude_requires_design_critique(self) -> None:
+        payload = make_validated_review("claude")
+        SCORER.validate_review(payload)
+        payload["capability_passes"][1]["status"] = "skipped"
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "must be used or unavailable"):
+            SCORER.validate_review(payload)
+
+    def test_both_baseline_records_are_required(self) -> None:
+        payload = make_validated_review("codex")
+        payload["capability_passes"].pop()
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "must include required"):
+            SCORER.validate_review(payload)
 
 
 if __name__ == "__main__":

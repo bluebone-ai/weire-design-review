@@ -12,7 +12,7 @@
 - 覆盖整体印象、易用性、视觉层级、一致性、无障碍性、亮点及优先建议
 - 使用 `F-001` 形式输出“证据—影响—建议—验证”详细问题卡
 - 针对微热检查品牌调性、颜色感知、视觉语言和设计系统一致性
-- 按需编排 Codex Product Design 或 Claude Design 专家能力
+- 每次评审强制运行当前宿主的设计专家基线：Codex Product Design `audit` 或 Claude Design `design-critique`
 - 将专家结论按“已采纳 / 待验证 / 未采纳”统一汇总、去重和追溯
 - 通过脚本校验报告结构并生成确定性评分
 - 自动输出开发准入结论：85 分为正常开发线，70–84 分有条件进入，低于 70 分先调整设计
@@ -35,6 +35,7 @@ codex plugin add weire-design-review@bluebone-ai
 ### Claude Code
 
 ```bash
+claude plugin marketplace add anthropics/knowledge-work-plugins
 claude plugin marketplace add bluebone-ai/weire-design-review
 claude plugin install weire-design-review@bluebone-ai
 ```
@@ -47,21 +48,22 @@ claude plugin install weire-design-review@bluebone-ai
 
 本地开发时也可以使用 `claude --plugin-dir ./plugins/weire-design-review`。
 
-## 可选专家插件
+## 强制专家基线
 
-本 Plugin 自身可独立完成微热评审。若当前宿主还提供设计专家能力，会把专家结论作为候选材料汇总进同一份报告，而不是另发一份互不关联的分析：
+本 Plugin 的微热规则负责证据、品牌、问题归并与确定性评分；每轮评审还必须成功运行当前宿主的独立设计专家，并把专家结论汇总进同一份报告：
 
-- Codex：Product Design 的 `audit` 等能力
-- Claude：官方 Design Plugin 的 `design-critique`、`accessibility-review`、`design-system`、`ux-copy` 等能力
+- Codex：每次运行 Product Design `audit`
+- Claude：每次运行官方 Design Plugin `design-critique`
+- Claude 的 `accessibility-review`、`design-system`、`ux-copy` 等仍按证据条件追加
 
-Claude Design 可单独安装：
+Claude 安装会声明对官方 Design Plugin 的跨 Marketplace 依赖。首次安装前需要先添加其 Marketplace：
 
 ```bash
 claude plugin marketplace add anthropics/knowledge-work-plugins
 claude plugin install design@knowledge-work-plugins
 ```
 
-Design 保持可选依赖：未安装时核心评审继续运行，并在能力调用记录中标记 `unavailable`；安装后，已验证的专家结论写入 `specialist_synthesis`，再归并到最终问题卡或亮点。外部插件评分不会覆盖本 Plugin 的确定性评分。
+宿主原生专家未安装、不可见或调用失败时，本轮报告不得输出最终评分；应先恢复依赖后重新评审。另一平台的专家能力受宿主隔离，记录为 `unavailable`，不视为漏调用。已验证的专家结论写入 `specialist_synthesis`，再归并到最终问题卡或亮点；外部插件评分不会覆盖本 Plugin 的确定性评分。
 
 ## 推荐输入
 

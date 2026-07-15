@@ -51,6 +51,7 @@ DEDUCTIONS = {"blocker": 100, "major": 40, "moderate": 15, "minor": 5}
 STATUSES = {"confirmed", "tentative"}
 SOURCE_TYPES = {"screenshot", "video", "figma", "mixed"}
 REVIEW_MODES = {"artifact", "redesign-comparison", "flow-audit", "direction-comparison"}
+EXECUTION_HOSTS = {"codex", "claude", "other"}
 DELTA_VALUES = {"better", "same", "worse", "unknown"}
 EVIDENCE_LEVELS = {"measured", "visually_estimated", "association_hypothesis"}
 MIN_SCORING_CONFIDENCE = 0.65
@@ -60,7 +61,7 @@ DEVELOPMENT_MIN_CONFIDENCE = 0.65
 REDESIGN_GOAL_STATUSES = {"missing", "inferred", "confirmed"}
 OBJECTIVE_TYPES = {"behavior", "interaction", "visual-language", "systemization"}
 CAPABILITY_PASS_STATUSES = {"used", "skipped", "unavailable"}
-CAPABILITY_INVOCATIONS = {"explicit", "automatic"}
+CAPABILITY_INVOCATIONS = {"required", "explicit", "automatic"}
 CAPABILITY_PASS_PURPOSES = {
     "evidence_capture",
     "candidate_findings",
@@ -83,6 +84,10 @@ CAPABILITY_INPUT_KINDS = {
 }
 SPECIALIST_DISPOSITIONS = {"adopted", "retained_for_validation", "not_adopted"}
 SPECIALIST_TARGET_TYPES = {"finding", "strength", "validation_hypothesis"}
+REQUIRED_BASELINE_PASSES = {
+    ("codex-product-design", "audit"): "codex",
+    ("claude-design", "design-critique"): "claude",
+}
 
 
 class ReviewValidationError(ValueError):
@@ -122,6 +127,8 @@ def validate_review(data: Any) -> dict[str, Any]:
     profile_name, weights = get_profile(review)
     mode = review.get("mode", "artifact")
     require(mode in REVIEW_MODES, f"review.mode must be one of {sorted(REVIEW_MODES)}")
+    execution_host = review.get("execution_host")
+    require(execution_host in EXECUTION_HOSTS, f"review.execution_host must be one of {sorted(EXECUTION_HOSTS)}")
     assumptions = review.get("assumptions", [])
     require(isinstance(assumptions, list), "review.assumptions must be an array")
 
@@ -141,10 +148,11 @@ def validate_review(data: Any) -> dict[str, Any]:
             for field in ("guardrail_metrics", "held_constant"):
                 require(isinstance(goal.get(field, []), list), f"context.redesign_goal.{field} must be an array")
 
-    capability_passes = data.get("capability_passes", [])
+    capability_passes = data.get("capability_passes")
     require(isinstance(capability_passes, list), "capability_passes must be an array")
     pass_statuses: dict[str, str] = {}
     pass_purposes: dict[str, set[str]] = {}
+    baseline_passes: dict[tuple[str, str], dict[str, Any]] = {}
     for index, capability_pass in enumerate(capability_passes):
         prefix = f"capability_passes[{index}]"
         require(isinstance(capability_pass, dict), f"{prefix} must be an object")
@@ -154,6 +162,8 @@ def validate_review(data: Any) -> dict[str, Any]:
         require(pass_id not in pass_statuses, f"duplicate capability pass id: {pass_id}")
         for field in ("provider", "capability"):
             validate_text(capability_pass.get(field), f"{prefix}.{field}")
+        provider = capability_pass["provider"]
+        capability = capability_pass["capability"]
         status = capability_pass.get("status")
         require(status in CAPABILITY_PASS_STATUSES, f"{prefix}.status is invalid")
         pass_statuses[pass_id] = status
@@ -170,6 +180,21 @@ def validate_review(data: Any) -> dict[str, Any]:
         require(set(input_kinds) <= CAPABILITY_INPUT_KINDS, f"{prefix}.input_kinds contains an invalid value")
         validate_text_list(capability_pass.get("input_sources", []), f"{prefix}.input_sources")
         validate_text_list(capability_pass.get("limitations", []), f"{prefix}.limitations")
+        baseline_key = (provider, capability)
+        if baseline_key in REQUIRED_BASELINE_PASSES:
+            require(baseline_key not in baseline_passes, f"duplicate required baseline pass: {provider}/{capability}")
+            baseline_passes[baseline_key] = capability_pass
+            require(invocation == "required", f"{prefix}.invocation must be required for a baseline pass")
+            require(status in {"used", "unavailable"}, f"{prefix} required baseline pass must be used or unavailable")
+            require(
+                set(purposes) & {"candidate_findings", "specialist_review"},
+                f"{prefix}.purposes must include candidate_findings or specialist_review",
+            )
+            if status == "used":
+                require(len(input_kinds) > 0, f"{prefix}.input_kinds must not be empty for a used baseline pass")
+                require(len(capability_pass.get("input_sources", [])) > 0, f"{prefix}.input_sources must not be empty for a used baseline pass")
+            else:
+                require(len(capability_pass.get("limitations", [])) > 0, f"{prefix}.limitations must explain baseline unavailability")
         if (
             capability_pass.get("provider") == "codex-product-design"
             and capability_pass.get("capability") == "audit"
@@ -177,6 +202,22 @@ def validate_review(data: Any) -> dict[str, Any]:
             and "static_screenshot" in input_kinds
         ):
             require(status != "skipped", f"{prefix} explicit Product Design audit with a static screenshot must not be skipped")
+
+    require(
+        set(baseline_passes) == set(REQUIRED_BASELINE_PASSES),
+        "capability_passes must include required codex-product-design/audit and claude-design/design-critique baselines",
+    )
+    require(execution_host != "other", "review.execution_host other cannot produce a scored final review")
+    native_key = next(key for key, host in REQUIRED_BASELINE_PASSES.items() if host == execution_host)
+    cross_host_key = next(key for key, host in REQUIRED_BASELINE_PASSES.items() if host != execution_host)
+    require(
+        baseline_passes[native_key]["status"] == "used",
+        f"required host-native baseline {native_key[0]}/{native_key[1]} must be used before scoring",
+    )
+    require(
+        baseline_passes[cross_host_key]["status"] == "unavailable",
+        f"cross-host baseline {cross_host_key[0]}/{cross_host_key[1]} must be unavailable",
+    )
 
     def validate_source_pass_ids(value: Any, path: str) -> None:
         validate_text_list(value, path, allow_empty=False)
@@ -483,7 +524,7 @@ def score_review(data: dict[str, Any]) -> dict[str, Any]:
         "score_confidence": rounded_confidence,
         "dimension_scores": dimension_scores,
         "scoring_profile": profile_name,
-        "scoring_version": "1.6",
+        "scoring_version": "1.7",
         "development_readiness": get_development_readiness(
             rounded_overall,
             rounded_confidence,

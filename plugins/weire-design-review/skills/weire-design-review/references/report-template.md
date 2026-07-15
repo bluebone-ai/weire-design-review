@@ -133,9 +133,12 @@ Keep this table concise, but do not omit a used critique pass because its candid
 
 Render the capability-pass log as:
 
-| ID | Provider | Capability | Trigger | Status | Input kind / source | Contribution scope | Limitations |
+| ID | Provider | Capability | Invocation | Status | Input kind / source | Contribution scope | Limitations |
 |---|---|---|---|---|---|---|---|
-| P-01 | Codex Product Design | audit | Explicit | Used | Static screenshot / CAND-HOME-01 | Evidence and candidate findings | Interaction and unshown states unsupported |
+| P-01 | Codex Product Design | audit | Required | Used | Static screenshot / CAND-HOME-01 | Evidence and candidate findings | Interaction and unshown states unsupported |
+| C-01 | Claude Design | design-critique | Required | Unavailable | — | None | Claude plugin cannot run in the Codex host |
+
+Always show both required baseline rows. The row matching `review.execution_host` must be `Used`; the cross-host row must be `Unavailable`. If the host-native row was not used, do not render a scored final report.
 
 ## Rendering rules
 
@@ -145,4 +148,4 @@ Render the capability-pass log as:
 - Use `N/A` rather than an inferred pass when evidence or redesign context is insufficient.
 - Show specialist provenance through `source_pass_ids`, but never use the number of agreeing passes as evidence strength or an extra deduction.
 - Map every adopted or retained synthesis item to a stable finding, strength, or hypothesis ID. Keep not-adopted items visible with an explicit rationale and no score effect.
-- Mark an explicitly requested Product Design audit of a readable static screenshot as `Used`; describe unsupported interaction evidence in `限制`, and deduplicate overlapping findings after the pass runs.
+- Mark the host-native Product Design audit or Claude Design critique of a readable static screenshot as `Used`; describe unsupported interaction evidence in `限制`, and deduplicate overlapping findings after the pass runs.

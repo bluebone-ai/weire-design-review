@@ -21,6 +21,7 @@ Create UTF-8 JSON. `profile` defaults to `generic-mobile-v1`; use `wira-v1` for 
     "title": "微热新版首页评审",
     "profile": "wira-v2",
     "mode": "redesign-comparison",
+    "execution_host": "codex",
     "source_type": "mixed",
     "platform": "ios",
     "core_task": "找到感兴趣的房间并愿意进入",
@@ -47,6 +48,7 @@ Allowed values:
 
 - `profile`: `generic-mobile-v1`, `wira-v1`, `wira-v2`
 - `mode`: `artifact`, `redesign-comparison`, `flow-audit`, `direction-comparison`
+- `execution_host`: `codex`, `claude`, `other`
 - `source_type`: `screenshot`, `video`, `figma`, `mixed`
 - `brand_charter_status`: `missing`, `candidate`, `confirmed`
 - `redesign_goal_status`: `missing`, `inferred`, `confirmed`
@@ -55,7 +57,7 @@ For `wira-v2` redesign comparisons, always include `redesign_goal_status`. When 
 
 ## Capability passes
 
-Record optional specialist routing without making the report dependent on any plugin. Omit the array only when no optional capability was considered.
+Record both mandatory baseline capabilities on every review. The array is required: the current host's native baseline must be `used`, while the other platform's baseline is `unavailable` because of the host boundary. Additional specialist passes remain optional.
 
 ```json
 {
@@ -64,7 +66,7 @@ Record optional specialist routing without making the report dependent on any pl
       "id": "P-01",
       "provider": "codex-product-design",
       "capability": "audit",
-      "invocation": "explicit",
+      "invocation": "required",
       "status": "used",
       "purposes": ["evidence_capture", "candidate_findings"],
       "input_kinds": ["static_screenshot"],
@@ -86,12 +88,12 @@ Record optional specialist routing without making the report dependent on any pl
       "id": "C-01",
       "provider": "claude-design",
       "capability": "design-critique",
-      "invocation": "explicit",
-      "status": "used",
+      "invocation": "required",
+      "status": "unavailable",
       "purposes": ["candidate_findings", "specialist_review"],
-      "input_kinds": ["static_screenshot"],
-      "input_sources": ["candidate-home-static"],
-      "limitations": ["Single static screenshot; interaction behavior and unshown states are unsupported"]
+      "input_kinds": [],
+      "input_sources": [],
+      "limitations": ["Claude Design cannot be invoked from the Codex execution host"]
     }
   ]
 }
@@ -100,13 +102,23 @@ Record optional specialist routing without making the report dependent on any pl
 Allowed values:
 
 - `status`: `used`, `skipped`, `unavailable`
-- `invocation`: `explicit`, `automatic`
+- `invocation`: `required`, `explicit`, `automatic`
 - `purposes`: `evidence_capture`, `candidate_findings`, `specialist_review`, `validation_plan`, `research_synthesis`, `ideation`, `handoff`, `implementation_qa`
 - `input_kinds`: `static_screenshot`, `video`, `figma`, `live_flow`, `design_system`, `research_data`, `implementation`, `other`
 
-Use stable pass IDs such as `P-01`. `provider` and `capability` describe the capability actually used, not the capability requested. A skipped or unavailable pass cannot be cited as a finding source.
+Use stable pass IDs such as `P-01`. `provider` and `capability` describe the capability actually used or the required cross-host baseline. A skipped or unavailable pass cannot be cited as a finding source.
 
-For a readable static screenshot, an explicitly requested Product Design `audit` is `used`, not `skipped`. Record static-input limits in `limitations`; handle overlap with the core review during finding consolidation. The validator rejects `skipped` for an explicit Product Design `audit` whose `input_kinds` includes `static_screenshot`; use `unavailable` only when the capability itself cannot run.
+Mandatory baseline rules:
+
+- Include exactly one `codex-product-design` / `audit` and one `claude-design` / `design-critique` pass.
+- Set both to `invocation: required`; neither may be `skipped`.
+- With `execution_host: codex`, Product Design must be `used` and Claude Design must be `unavailable`.
+- With `execution_host: claude`, Claude Design must be `used` and Product Design must be `unavailable`.
+- With `execution_host: other`, both are `unavailable` and the scorer rejects a completed review; use this only for an incomplete-review diagnostic.
+- An unavailable pass must state the host boundary or missing dependency in `limitations`.
+- A used baseline must cite accepted input kinds and sources and must have at least one `specialist_synthesis` item.
+
+For a readable static screenshot, the host-native baseline is `used`, not `skipped`. Record static-input limits in `limitations`; handle overlap with the core review during finding consolidation. The validator rejects a missing, skipped, or unavailable host-native baseline.
 
 ## Specialist synthesis
 
@@ -125,7 +137,7 @@ For every used pass whose purposes include `candidate_findings` or `specialist_r
     },
     {
       "id": "SI-002",
-      "source_pass_id": "C-01",
+      "source_pass_id": "P-01",
       "summary": "The warm purple-red palette may cue dating or livestream categories",
       "disposition": "retained_for_validation",
       "target_refs": [{"type": "validation_hypothesis", "id": "H-001"}],
@@ -244,7 +256,7 @@ Store product effects that require a prototype test or analytics separately from
       "hypothesis": "Because active room behavior is visible on cards, more users will enter based on shared activity",
       "primary_metric": "room_entry_rate",
       "guardrails": ["post_entry_dwell", "gift_conversion"],
-      "source_pass_ids": ["core", "C-01"]
+      "source_pass_ids": ["core", "P-01"]
     }
   ]
 }
@@ -262,7 +274,7 @@ Run `python3 scripts/review_score.py <review.json> --write`. The script adds:
     "score_confidence": 0.77,
     "dimension_scores": {},
     "scoring_profile": "wira-v2",
-    "scoring_version": "1.6",
+    "scoring_version": "1.7",
     "development_readiness": {
       "status": "conditional_handoff",
       "label": "有条件进入开发",
