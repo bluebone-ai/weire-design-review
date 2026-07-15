@@ -1,4 +1,4 @@
 interface:
   display_name: "微热设计评审"
   short_description: "融合微热现网、品牌设计系统与可选设计插件专家能力的证据化评审"
-  default_prompt: "Use $weire-design-review to review this Weire design, orchestrate only applicable specialist capabilities, and return evidence-backed detailed findings and deterministic scores."
+  default_prompt: "Use $weire-design-review to review this Weire design, return evidence-backed detailed findings and deterministic scores, and state whether it passes the 85-point development-readiness gate."

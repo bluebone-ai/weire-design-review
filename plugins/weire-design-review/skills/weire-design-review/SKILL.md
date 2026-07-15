@@ -69,8 +69,9 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
    - Create review JSON matching [result-schema.md](references/result-schema.md).
    - Run `python3 scripts/review_score.py <review.json> --write` from this skill directory.
    - Fix validation errors instead of manually inventing a score.
+   - Read [development-readiness.md](references/development-readiness.md) and use the generated `development_readiness` gate without overriding its thresholds or severity rules.
 9. Deliver the review.
-   - Lead with verdict, score, confidence, and redesign delta when applicable.
+   - Lead with verdict, score, confidence, development readiness, and redesign delta when applicable.
    - Render accepted evidence inline when possible.
    - Render the seven fixed report sections and appendix in [report-template.md](references/report-template.md).
    - Save evidence, scored JSON, and a Markdown report when the environment supports files.
@@ -107,6 +108,8 @@ Use these fixed user-facing sections in order:
 7. Priority Recommendations / 优先改进建议
 
 Follow them with the evidence and scoring appendix defined in [report-template.md](references/report-template.md). Keep detailed profile dimensions underneath this presentation layer and never deduct twice when a finding appears in a roll-up section.
+
+Inside `Overall Impression`, always render the scored `Development Readiness / 开发准入` callout. State the 85-point normal development line, any score or severity override, evidence sufficiency, and the required next action.
 
 After the seven summary sections, render every finding as a numbered detail card with severity, status, confidence, delta, evidence, impact, recommendation, and validation. Do not replace these cards with a one-line issue list.
 

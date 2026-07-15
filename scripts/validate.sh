@@ -8,6 +8,7 @@ CODEX_TOOLS="${CODEX_HOME:-$HOME/.codex}/skills/.system"
 CODEX_PYTHON="${CODEX_VALIDATION_PYTHON:-$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3}"
 
 python3 "$ROOT/scripts/validate_release.py"
+python3 -m unittest discover -s "$ROOT/tests" -p "test_*.py"
 bash -n "$ROOT/scripts/release.sh"
 
 if command -v claude >/dev/null 2>&1; then

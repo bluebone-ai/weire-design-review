@@ -22,5 +22,8 @@ jobs:
       - name: Validate package, manifests, links, and scorer
         run: python3 scripts/validate_release.py
 
+      - name: Test deterministic scoring and development gate
+        run: python3 -m unittest discover -s tests -p "test_*.py"
+
       - name: Validate release shell syntax
         run: bash -n scripts/validate.sh scripts/release.sh

@@ -54,6 +54,9 @@ REVIEW_MODES = {"artifact", "redesign-comparison", "flow-audit", "direction-comp
 DELTA_VALUES = {"better", "same", "worse", "unknown"}
 EVIDENCE_LEVELS = {"measured", "visually_estimated", "association_hypothesis"}
 MIN_SCORING_CONFIDENCE = 0.65
+DEVELOPMENT_READY_SCORE = 85
+DEVELOPMENT_REVISION_SCORE = 70
+DEVELOPMENT_MIN_CONFIDENCE = 0.65
 REDESIGN_GOAL_STATUSES = {"missing", "inferred", "confirmed"}
 OBJECTIVE_TYPES = {"behavior", "interaction", "visual-language", "systemization"}
 CAPABILITY_PASS_STATUSES = {"used", "skipped", "unavailable"}
@@ -345,6 +348,74 @@ def validate_review(data: Any) -> dict[str, Any]:
     return data
 
 
+def get_development_readiness(
+    overall_score: float,
+    score_confidence: float,
+    blocker_count: int,
+    major_count: int,
+) -> dict[str, Any]:
+    thresholds = {
+        "ready_score": DEVELOPMENT_READY_SCORE,
+        "revision_score": DEVELOPMENT_REVISION_SCORE,
+        "minimum_score_confidence": DEVELOPMENT_MIN_CONFIDENCE,
+    }
+    reasons: list[str] = []
+
+    if overall_score < DEVELOPMENT_REVISION_SCORE:
+        reasons.append("overall_score_below_70")
+    if blocker_count:
+        reasons.append("confirmed_blocker_findings")
+    if major_count >= 2:
+        reasons.append("multiple_confirmed_major_findings")
+    if reasons:
+        return {
+            "status": "revise_before_development",
+            "label": "暂不建议进入开发",
+            "recommended_action": "先完成一轮设计调整，关闭阻断或重大问题后重新评审。",
+            "reasons": reasons,
+            "thresholds": thresholds,
+            "requires_re_review": True,
+        }
+
+    if score_confidence < DEVELOPMENT_MIN_CONFIDENCE:
+        return {
+            "status": "insufficient_evidence",
+            "label": "证据不足，暂不做开发准入判断",
+            "recommended_action": "补齐关键流程、状态或可测量证据后重新评分。",
+            "reasons": ["score_confidence_below_0.65"],
+            "thresholds": thresholds,
+            "requires_re_review": True,
+        }
+
+    if overall_score < DEVELOPMENT_READY_SCORE or major_count == 1:
+        if overall_score < DEVELOPMENT_READY_SCORE:
+            reasons.append("overall_score_below_85")
+        if major_count == 1:
+            reasons.append("one_confirmed_major_finding")
+        recommended_action = (
+            "先关闭重大问题并确认修改方案；仅可并行开展技术预研或低返工风险工作。"
+            if major_count == 1
+            else "先完成优先改进项并确认修改方案；仅可并行开展技术预研或低返工风险工作。"
+        )
+        return {
+            "status": "conditional_handoff",
+            "label": "有条件进入开发",
+            "recommended_action": recommended_action,
+            "reasons": reasons,
+            "thresholds": thresholds,
+            "requires_re_review": True,
+        }
+
+    return {
+        "status": "ready_for_development",
+        "label": "可正常进入开发",
+        "recommended_action": "进入设计交付与开发，并把一般和轻微问题纳入实现验收清单。",
+        "reasons": ["score_at_or_above_85", "no_confirmed_blocker_or_major", "sufficient_score_confidence"],
+        "thresholds": thresholds,
+        "requires_re_review": False,
+    }
+
+
 def score_review(data: dict[str, Any]) -> dict[str, Any]:
     profile_name, weights = get_profile(data["review"])
     dimensions = data["scope"]["dimensions"]
@@ -403,14 +474,22 @@ def score_review(data: dict[str, Any]) -> dict[str, Any]:
         dimensions[dimension]["evidence_confidence"] * weights[dimension]
         for dimension in applicable
     ) / total_weight
+    rounded_overall = round(overall, 1)
+    rounded_confidence = round(score_confidence, 2)
 
     return {
-        "overall_score": round(overall, 1),
+        "overall_score": rounded_overall,
         "raw_weighted_score": round(raw_overall, 1),
-        "score_confidence": round(score_confidence, 2),
+        "score_confidence": rounded_confidence,
         "dimension_scores": dimension_scores,
         "scoring_profile": profile_name,
-        "scoring_version": "1.5",
+        "scoring_version": "1.6",
+        "development_readiness": get_development_readiness(
+            rounded_overall,
+            rounded_confidence,
+            blocker_count,
+            major_count,
+        ),
     }
 
 

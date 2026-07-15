@@ -171,9 +171,9 @@ Do not deduct for:
 | Score | Interpretation |
 |---:|---|
 | 90–100 | Strong; remaining issues are mainly minor or limited in scope |
-| 80–89 | Good; a few meaningful issues should be addressed |
-| 70–79 | Needs revision before handoff or broad validation |
+| 85–89 | Good; meets the normal development score line when no severity or evidence gate overrides it |
+| 70–84 | Needs revision or conditional handoff before full development |
 | 60–69 | High-risk experience with several major problems |
 | 0–59 | Core task, comprehension, or access is seriously compromised |
 
-The score summarizes the declared evidence set. It is not a universal rating of the designer or product. Apply the deterministic severity gates from `review_score.py`.
+The score summarizes the declared evidence set. It is not a universal rating of the designer or product. Apply the deterministic severity and development-readiness gates from `review_score.py`; read [development-readiness.md](development-readiness.md) for the full rule.

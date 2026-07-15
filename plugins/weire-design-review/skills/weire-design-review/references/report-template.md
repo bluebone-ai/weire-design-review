@@ -8,10 +8,25 @@ Include:
 
 - one-sentence verdict;
 - overall score and score confidence;
+- the deterministic `Development Readiness / 开发准入` result, decision basis, 85-point normal development line, and next action;
 - redesign delta when comparison is valid;
 - redesign-goal status and the most important evidence limitation.
 
 Do not claim the redesign is better when its primary objective is missing or inferred.
+
+Render this callout immediately after the one-sentence verdict:
+
+```markdown
+### Development Readiness / 开发准入
+
+**结论：** {scores.development_readiness.label}
+
+- **依据：** {overall score, evidence confidence, and translated reason codes with related finding IDs}
+- **正常开发线：** 85 分
+- **下一步：** {scores.development_readiness.recommended_action}
+```
+
+Use the generated gate from [development-readiness.md](development-readiness.md). Do not manually promote a design because its total score looks high. Clarify that the result covers design readiness, not technical feasibility or release approval.
 
 ## 2. Usability / 易用性
 

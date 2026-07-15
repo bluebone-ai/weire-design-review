@@ -262,18 +262,41 @@ Run `python3 scripts/review_score.py <review.json> --write`. The script adds:
     "score_confidence": 0.77,
     "dimension_scores": {},
     "scoring_profile": "wira-v2",
-    "scoring_version": "1.5"
+    "scoring_version": "1.6",
+    "development_readiness": {
+      "status": "conditional_handoff",
+      "label": "有条件进入开发",
+      "recommended_action": "先完成优先改进项并确认修改方案；仅可并行开展技术预研或低返工风险工作。",
+      "reasons": ["overall_score_below_85"],
+      "thresholds": {
+        "ready_score": 85,
+        "revision_score": 70,
+        "minimum_score_confidence": 0.65
+      },
+      "requires_re_review": true
+    }
   }
 }
 ```
 
 Confirmed findings deduct `100`, `40`, `15`, or `5` points from their primary dimension for blocker, major, moderate, or minor severity. Only findings with confidence at least `0.65` affect the score. Any blocker caps the total at `59`, two or more major findings cap it at `79`, and one major finding caps it at `89`.
 
+The normal development line is `85`. Scores from `70` through `84` are conditional; scores below `70` require design revision. Any scored Blocker or at least two scored Majors forces `revise_before_development`; one scored Major prevents normal readiness. When score confidence is below `0.65` and no stronger revision gate applies, use `insufficient_evidence`. Follow [development-readiness.md](development-readiness.md) and never hand-edit this generated result.
+
+Allowed `development_readiness.status` values:
+
+- `ready_for_development`
+- `conditional_handoff`
+- `revise_before_development`
+- `insufficient_evidence`
+
+`reasons` contains stable machine-readable codes such as `overall_score_below_85`, `overall_score_below_70`, `one_confirmed_major_finding`, `multiple_confirmed_major_findings`, `confirmed_blocker_findings`, or `score_confidence_below_0.65`. Render those codes as plain-language evidence and related finding IDs rather than exposing only the raw code.
+
 For redesign comparisons, score both versions separately with matched scope. A delta label is an evidence-based comparison; the scoring script does not manufacture a numeric improvement from unmatched evidence.
 
 ## Report rendering
 
-The scored JSON remains the source of truth. Render it with the seven fixed sections in [report-template.md](report-template.md): Overall Impression, Usability, Visual Hierarchy, Consistency, Accessibility, What Works Well, and Priority Recommendations.
+The scored JSON remains the source of truth. Render it with the seven fixed sections in [report-template.md](report-template.md): Overall Impression, Usability, Visual Hierarchy, Consistency, Accessibility, What Works Well, and Priority Recommendations. Render `development_readiness` prominently inside Overall Impression.
 
 `Usability` is a presentation roll-up for `wira-v2`, not a new scoring dimension. Pull its evidence from the mapped source dimensions and do not deduct again. Follow the seven sections with the evidence, detailed score, findings, validation, limitation, and artifact appendix.
 
