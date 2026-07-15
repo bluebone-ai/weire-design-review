@@ -1,0 +1,4 @@
+interface:
+  display_name: "微热设计评审"
+  short_description: "对照微热现网、品牌标准、设计系统与产品目标的证据化评审"
+  default_prompt: "Use $weire-design-review to compare this Weire redesign with the production baseline and return evidence-backed scores, deltas, detailed findings, and validation hypotheses."
