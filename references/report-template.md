@@ -102,7 +102,8 @@ After the seven sections, include:
 5. detailed finding cards ordered by severity and task impact;
 6. validation hypotheses and target metrics;
 7. evidence limitations and untested areas;
-8. saved artifact locations.
+8. capability-pass log with provider, purpose, status, inputs, contribution scope, and limitations;
+9. saved artifact locations.
 
 ## Rendering rules
 
@@ -110,3 +111,4 @@ After the seven sections, include:
 - `Usability` is a non-duplicating roll-up of existing dimensions for `wira-v2`; do not subtract points again.
 - `Visual Hierarchy`, `Consistency`, and `Accessibility` expose their underlying dimension scores where an exact mapping exists.
 - Use `N/A` rather than an inferred pass when evidence or redesign context is insufficient.
+- Show specialist provenance through `source_pass_ids`, but never use the number of agreeing passes as evidence strength or an extra deduction.

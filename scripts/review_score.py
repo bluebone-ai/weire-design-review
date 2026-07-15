@@ -56,6 +56,17 @@ EVIDENCE_LEVELS = {"measured", "visually_estimated", "association_hypothesis"}
 MIN_SCORING_CONFIDENCE = 0.65
 REDESIGN_GOAL_STATUSES = {"missing", "inferred", "confirmed"}
 OBJECTIVE_TYPES = {"behavior", "interaction", "visual-language", "systemization"}
+CAPABILITY_PASS_STATUSES = {"used", "skipped", "unavailable"}
+CAPABILITY_PASS_PURPOSES = {
+    "evidence_capture",
+    "candidate_findings",
+    "specialist_review",
+    "validation_plan",
+    "research_synthesis",
+    "ideation",
+    "handoff",
+    "implementation_qa",
+}
 
 
 class ReviewValidationError(ValueError):
@@ -69,6 +80,13 @@ def require(condition: bool, message: str) -> None:
 
 def validate_text(value: Any, path: str) -> None:
     require(isinstance(value, str) and value.strip() != "", f"{path} must be non-empty text")
+
+
+def validate_text_list(value: Any, path: str, *, allow_empty: bool = True) -> None:
+    require(isinstance(value, list), f"{path} must be an array")
+    require(allow_empty or len(value) > 0, f"{path} must not be empty")
+    for index, item in enumerate(value):
+        validate_text(item, f"{path}[{index}]")
 
 
 def get_profile(review: dict[str, Any]) -> tuple[str, dict[str, int]]:
@@ -107,6 +125,36 @@ def validate_review(data: Any) -> dict[str, Any]:
             for field in ("guardrail_metrics", "held_constant"):
                 require(isinstance(goal.get(field, []), list), f"context.redesign_goal.{field} must be an array")
 
+    capability_passes = data.get("capability_passes", [])
+    require(isinstance(capability_passes, list), "capability_passes must be an array")
+    pass_statuses: dict[str, str] = {}
+    for index, capability_pass in enumerate(capability_passes):
+        prefix = f"capability_passes[{index}]"
+        require(isinstance(capability_pass, dict), f"{prefix} must be an object")
+        pass_id = capability_pass.get("id")
+        validate_text(pass_id, f"{prefix}.id")
+        require(pass_id != "core", f"{prefix}.id uses reserved value core")
+        require(pass_id not in pass_statuses, f"duplicate capability pass id: {pass_id}")
+        for field in ("provider", "capability"):
+            validate_text(capability_pass.get(field), f"{prefix}.{field}")
+        status = capability_pass.get("status")
+        require(status in CAPABILITY_PASS_STATUSES, f"{prefix}.status is invalid")
+        pass_statuses[pass_id] = status
+        purposes = capability_pass.get("purposes")
+        validate_text_list(purposes, f"{prefix}.purposes", allow_empty=False)
+        require(len(purposes) == len(set(purposes)), f"{prefix}.purposes must not contain duplicates")
+        require(set(purposes) <= CAPABILITY_PASS_PURPOSES, f"{prefix}.purposes contains an invalid value")
+        validate_text_list(capability_pass.get("input_sources", []), f"{prefix}.input_sources")
+        validate_text_list(capability_pass.get("limitations", []), f"{prefix}.limitations")
+
+    def validate_source_pass_ids(value: Any, path: str) -> None:
+        validate_text_list(value, path, allow_empty=False)
+        require(len(value) == len(set(value)), f"{path} must not contain duplicates")
+        for source_id in value:
+            require(source_id == "core" or source_id in pass_statuses, f"{path} references unknown pass {source_id}")
+            if source_id != "core":
+                require(pass_statuses[source_id] == "used", f"{path} references non-used pass {source_id}")
+
     scope = data.get("scope")
     require(isinstance(scope, dict), "scope must be an object")
     dimensions = scope.get("dimensions")
@@ -136,6 +184,8 @@ def validate_review(data: Any) -> dict[str, Any]:
         require(isinstance(strength.get("evidence"), dict), f"{prefix}.evidence must be an object")
         if "delta" in strength:
             require(strength["delta"] in DELTA_VALUES, f"{prefix}.delta is invalid")
+        if "source_pass_ids" in strength:
+            validate_source_pass_ids(strength["source_pass_ids"], f"{prefix}.source_pass_ids")
 
     findings = data.get("findings")
     require(isinstance(findings, list), "findings must be an array")
@@ -170,6 +220,8 @@ def validate_review(data: Any) -> dict[str, Any]:
             require(finding["delta"] in DELTA_VALUES, f"{prefix}.delta is invalid")
         if "evidence_level" in finding:
             require(finding["evidence_level"] in EVIDENCE_LEVELS, f"{prefix}.evidence_level is invalid")
+        if "source_pass_ids" in finding:
+            validate_source_pass_ids(finding["source_pass_ids"], f"{prefix}.source_pass_ids")
 
     hypotheses = data.get("validation_hypotheses", [])
     require(isinstance(hypotheses, list), "validation_hypotheses must be an array")
@@ -248,7 +300,7 @@ def score_review(data: dict[str, Any]) -> dict[str, Any]:
         "score_confidence": round(score_confidence, 2),
         "dimension_scores": dimension_scores,
         "scoring_profile": profile_name,
-        "scoring_version": "1.2",
+        "scoring_version": "1.3",
     }
 
 

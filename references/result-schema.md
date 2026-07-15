@@ -3,6 +3,7 @@
 ## Contents
 
 - Review and context
+- Capability passes
 - Scope dimensions
 - Findings and deltas
 - Validation hypotheses
@@ -51,6 +52,42 @@ Allowed values:
 
 For `wira-v2` redesign comparisons, always include `redesign_goal_status`. When it is `confirmed` or `inferred`, include the goal object shown above. Only a confirmed goal makes `task_flow_delta` applicable; missing or inferred goals keep it `N/A` while the remaining artifact dimensions may still be reviewed.
 
+## Capability passes
+
+Record optional specialist routing without making the report dependent on any plugin. Omit the array only when no optional capability was considered.
+
+```json
+{
+  "capability_passes": [
+    {
+      "id": "P-01",
+      "provider": "codex-product-design",
+      "capability": "audit",
+      "status": "used",
+      "purposes": ["evidence_capture", "candidate_findings"],
+      "input_sources": ["production-home-flow", "candidate-home"],
+      "limitations": ["Captured states do not cover first-time permission denial"]
+    },
+    {
+      "id": "P-02",
+      "provider": "claude-design",
+      "capability": "accessibility-review",
+      "status": "skipped",
+      "purposes": ["specialist_review"],
+      "input_sources": [],
+      "limitations": ["No implementation or inspectable Figma values were supplied"]
+    }
+  ]
+}
+```
+
+Allowed values:
+
+- `status`: `used`, `skipped`, `unavailable`
+- `purposes`: `evidence_capture`, `candidate_findings`, `specialist_review`, `validation_plan`, `research_synthesis`, `ideation`, `handoff`, `implementation_qa`
+
+Use stable pass IDs such as `P-01`. `provider` and `capability` describe the capability actually used, not the capability requested. A skipped or unavailable pass cannot be cited as a finding source.
+
 ## Scope dimensions
 
 Include exactly the dimensions belonging to the selected profile. Every dimension must state applicability and evidence confidence.
@@ -98,6 +135,7 @@ Use the dimension IDs in `review-framework.md`. Non-applicable dimensions requir
       "status": "confirmed",
       "confidence": 0.88,
       "check_type": "contextual",
+      "source_pass_ids": ["core", "P-01"],
       "delta": "worse",
       "title": "The primary room-discovery action lost emphasis",
       "evidence": {
@@ -121,6 +159,8 @@ Allowed values:
 - confidence: number from `0` to `1`
 
 Evidence requires `screen_id` and `description`; it may also include `region`, `timestamp_ms`, `node_id`, `baseline_screen_id`, or `design_system_ref`.
+
+`source_pass_ids` is optional and defaults conceptually to `["core"]`. It may contain `core` and IDs of `used` entries in `capability_passes`. It records contribution provenance, not independent evidence and not extra scoring weight.
 
 Tentative findings stay visible but do not reduce scores. Use tentative status for candidate brand principles or missing comparison context. The confirmed Wira charter may support confirmed `brand_alignment` findings in `wira-v2`.
 
@@ -153,7 +193,7 @@ Run `python3 scripts/review_score.py <review.json> --write`. The script adds:
     "score_confidence": 0.77,
     "dimension_scores": {},
     "scoring_profile": "wira-v2",
-    "scoring_version": "1.2"
+    "scoring_version": "1.3"
   }
 }
 ```
