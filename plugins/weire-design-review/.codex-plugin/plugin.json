@@ -1,13 +1,19 @@
 {
   "name": "weire-design-review",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Evidence-based mobile design review for Weire/Wira/Laboo, with goal, brand, design-system, specialist-pass, and deterministic-scoring support.",
   "author": {
     "name": "BlueBone AI",
     "url": "https://github.com/bluebone-ai"
   },
   "repository": "https://github.com/bluebone-ai/weire-design-review",
-  "keywords": ["design-review", "mobile", "weire", "wira", "laboo"],
+  "keywords": [
+    "design-review",
+    "mobile",
+    "weire",
+    "wira",
+    "laboo"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "微热设计评审",
@@ -15,7 +21,11 @@
     "longDescription": "评审截图、录屏与 Figma 设计，输出逐项问题卡、专家能力汇总、验证假设与确定性评分。",
     "developerName": "BlueBone AI",
     "category": "Productivity",
-    "capabilities": ["Design review", "Image and flow analysis", "Deterministic scoring"],
+    "capabilities": [
+      "Design review",
+      "Image and flow analysis",
+      "Deterministic scoring"
+    ],
     "defaultPrompt": "使用 $weire-design-review 评审这张微热设计稿，先确认目标和证据，再输出覆盖表、详细问题卡、专家结论汇总与确定性评分。"
   }
 }
