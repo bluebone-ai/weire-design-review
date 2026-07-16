@@ -100,6 +100,8 @@ def validate_skill() -> None:
     require((SKILL / "agents" / "openai.yaml").is_file(), "agents/openai.yaml is missing")
     require(SCORER.is_file(), "review_score.py is missing")
     require("host-native baseline pass" in text, "SKILL.md must require the host-native design expert baseline")
+    require((SKILL / "references" / "design-goal-gate.md").is_file(), "design-goal-gate.md is missing")
+    require("design-goal-gate.md" in text, "SKILL.md must run the mandatory design goal gate")
 
     markdown_files = [skill_file, *sorted((SKILL / "references").glob("*.md"))]
     for markdown_file in markdown_files:

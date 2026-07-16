@@ -50,6 +50,15 @@ def make_validated_review(execution_host: str = "codex") -> dict:
         }
     )
     payload["scope"]["limitations"] = ["Static screenshot only"]
+    payload["context"] = {
+        "design_goal_status": "confirmed",
+        "design_goal": {
+            "goal_type": "general_quality",
+            "primary_goal": "Confirm that the design is ready for development",
+            "success_criteria": ["Overall score is at least 85", "No blocker or major finding"],
+            "source": "user_confirmed",
+        },
+    }
     codex_status = "used" if execution_host == "codex" else "unavailable"
     claude_status = "used" if execution_host == "claude" else "unavailable"
     payload["capability_passes"] = [
@@ -146,7 +155,7 @@ class DevelopmentReadinessTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             scored = json.loads(review_path.read_text(encoding="utf-8"))
-        self.assertEqual(scored["scores"]["scoring_version"], "1.7")
+        self.assertEqual(scored["scores"]["scoring_version"], "1.8")
         self.assertEqual(scored["scores"]["development_readiness"]["status"], "ready_for_development")
 
 
@@ -171,6 +180,25 @@ class RequiredSpecialistPassTests(unittest.TestCase):
         with self.assertRaisesRegex(SCORER.ReviewValidationError, "must include required"):
             SCORER.validate_review(payload)
 
+
+class DesignGoalGateTests(unittest.TestCase):
+    def test_confirmed_design_goal_is_required(self) -> None:
+        payload = make_validated_review("codex")
+        payload["context"].pop("design_goal_status")
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "design_goal_status must be confirmed"):
+            SCORER.validate_review(payload)
+
+    def test_success_criterion_is_required(self) -> None:
+        payload = make_validated_review("codex")
+        payload["context"]["design_goal"]["success_criteria"] = []
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "success_criteria must not be empty"):
+            SCORER.validate_review(payload)
+
+    def test_inferred_goal_source_is_rejected(self) -> None:
+        payload = make_validated_review("claude")
+        payload["context"]["design_goal"]["source"] = "model_inferred"
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "design_goal.source"):
+            SCORER.validate_review(payload)
 
 if __name__ == "__main__":
     unittest.main()

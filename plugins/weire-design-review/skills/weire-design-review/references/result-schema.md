@@ -28,6 +28,13 @@ Create UTF-8 JSON. `profile` defaults to `generic-mobile-v1`; use `wira-v1` for 
     "assumptions": ["候选稿与现网截图处于相同首页状态"]
   },
   "context": {
+    "design_goal_status": "confirmed",
+    "design_goal": {
+      "goal_type": "behavior",
+      "primary_goal": "提升用户从首页进入感兴趣房间的效率",
+      "success_criteria": ["room_entry_rate 提升", "post_entry_dwell 不下降"],
+      "source": "user_declared"
+    },
     "brand_charter_status": "confirmed",
     "baseline_status": "available",
     "design_system_status": "available",
@@ -51,9 +58,14 @@ Allowed values:
 - `execution_host`: `codex`, `claude`, `other`
 - `source_type`: `screenshot`, `video`, `figma`, `mixed`
 - `brand_charter_status`: `missing`, `candidate`, `confirmed`
+- `design_goal_status`: final scored reviews require `confirmed`
+- `design_goal.goal_type`: `behavior`, `experience_or_brand`, `general_quality`
+- `design_goal.source`: `user_declared`, `user_confirmed`
 - `redesign_goal_status`: `missing`, `inferred`, `confirmed`
 
-For `wira-v2` redesign comparisons, always include `redesign_goal_status`. When it is `confirmed` or `inferred`, include the goal object shown above. Only a confirmed goal makes `task_flow_delta` applicable; missing or inferred goals keep it `N/A` while the remaining artifact dimensions may still be reviewed.
+Every scored review requires a user-declared or user-confirmed design goal plus at least one non-empty success criterion. Do not write this contract from model inference. If the user supplied only an artifact, run [design-goal-gate.md](design-goal-gate.md), ask the required question, and stop before creating review JSON.
+
+For `wira-v2` redesign comparisons, also include `redesign_goal_status`. Keep `design_goal` and `redesign_goal` aligned. When `redesign_goal_status` is `confirmed` or `inferred`, include the redesign goal object shown above. Only a confirmed redesign goal makes `task_flow_delta` applicable; missing or inferred redesign goals keep it `N/A` while the remaining artifact dimensions may still be reviewed.
 
 ## Capability passes
 
@@ -274,7 +286,7 @@ Run `python3 scripts/review_score.py <review.json> --write`. The script adds:
     "score_confidence": 0.77,
     "dimension_scores": {},
     "scoring_profile": "wira-v2",
-    "scoring_version": "1.7",
+    "scoring_version": "1.8",
     "development_readiness": {
       "status": "conditional_handoff",
       "label": "有条件进入开发",

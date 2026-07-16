@@ -1,10 +1,12 @@
 # Required and optional capability orchestration
 
-Use the host-native design expert as a required independent baseline around the Wira review core, then add scoped optional experts only when they expand evidence or depth. Specialists do not replace the confirmed product objective, Wira brand standard, baseline comparison, finding schema, or deterministic score.
+Use the host-native design expert as a required independent baseline around the Wira review core only after the design-goal intake gate is confirmed, then add scoped optional experts when they expand evidence or depth. Specialists do not replace the confirmed product objective, Wira brand standard, baseline comparison, finding schema, or deterministic score.
 
 ## Mandatory baseline passes
 
-Every review with at least one readable screenshot, accepted video frame, or inspectable Figma frame must log both baseline capabilities and successfully run the current host's native one.
+Every review with a confirmed goal and at least one readable screenshot, accepted video frame, or inspectable Figma frame must log both baseline capabilities and successfully run the current host's native one.
+
+If goal intake is incomplete, do not run or log a specialist pass as though a review started. Ask the goal question and stop before this orchestration stage.
 
 | Execution host | Required used pass | Required cross-host record |
 |---|---|---|
@@ -18,16 +20,17 @@ If the native pass is missing, disabled, or fails, stop before deterministic sco
 
 ## Authority and normalization contract
 
-1. Run the Wira core intake and evidence check first.
-2. Run the mandatory host-native baseline pass against the accepted evidence.
-3. Select only additional capabilities whose trigger and required inputs are present.
-4. Record every required, used, skipped, or unavailable pass in `capability_passes`.
-5. Treat specialist output as candidate material.
-6. Verify each candidate against an accepted screenshot, video frame, Figma node, implementation state, design-system rule, or research record.
-7. Merge duplicate symptoms into one root finding and assign one primary scoring dimension.
-8. Add the contributing pass IDs to `source_pass_ids`; use `core` for the Wira review itself.
-9. Add every materially distinct specialist conclusion to `specialist_synthesis` and record whether it was adopted, retained for validation, or not adopted.
-10. Score only the normalized final findings. Never average, add, or compare scores emitted by other plugins.
+1. Confirm the user-declared or user-confirmed design goal and success criteria.
+2. Run the Wira core intake and evidence check.
+3. Run the mandatory host-native baseline pass against the accepted evidence.
+4. Select only additional capabilities whose trigger and required inputs are present.
+5. Record every used, skipped, or unavailable pass in `capability_passes`.
+6. Treat specialist output as candidate material.
+7. Verify each candidate against an accepted screenshot, video frame, Figma node, implementation state, design-system rule, or research record.
+8. Merge duplicate symptoms into one root finding and assign one primary scoring dimension.
+9. Add the contributing pass IDs to `source_pass_ids`; use `core` for the Wira review itself.
+10. Add every materially distinct specialist conclusion to `specialist_synthesis` and record whether it was adopted, retained for validation, or not adopted.
+11. Score only the normalized final findings. Never average, add, or compare scores emitted by other plugins.
 
 After the mandatory baseline, do not run additional generic critique passes merely to create apparent consensus. Add an optional specialist only when it contributes a different evidence source, checklist, or deliverable. This minimization rule never suppresses the mandatory baseline.
 

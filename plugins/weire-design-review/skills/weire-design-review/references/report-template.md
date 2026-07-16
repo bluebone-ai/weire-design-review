@@ -7,12 +7,15 @@ Use these seven user-facing sections for every review. Keep the underlying profi
 Include:
 
 - one-sentence verdict;
+- the confirmed design goal and success criteria;
 - overall score and score confidence;
 - the deterministic `Development Readiness / 开发准入` result, decision basis, 85-point normal development line, and next action;
 - redesign delta when comparison is valid;
 - redesign-goal status and the most important evidence limitation.
 
 Do not claim the redesign is better when its primary objective is missing or inferred.
+
+Do not render this report at all while design-goal intake is incomplete. The intake response must contain only artifact receipt/source confirmation and the required question from [design-goal-gate.md](design-goal-gate.md).
 
 Render this callout immediately after the one-sentence verdict:
 

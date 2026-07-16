@@ -60,6 +60,8 @@ DEVELOPMENT_REVISION_SCORE = 70
 DEVELOPMENT_MIN_CONFIDENCE = 0.65
 REDESIGN_GOAL_STATUSES = {"missing", "inferred", "confirmed"}
 OBJECTIVE_TYPES = {"behavior", "interaction", "visual-language", "systemization"}
+DESIGN_GOAL_TYPES = {"behavior", "experience_or_brand", "general_quality"}
+DESIGN_GOAL_SOURCES = {"user_declared", "user_confirmed"}
 CAPABILITY_PASS_STATUSES = {"used", "skipped", "unavailable"}
 CAPABILITY_INVOCATIONS = {"required", "explicit", "automatic"}
 CAPABILITY_PASS_PURPOSES = {
@@ -134,6 +136,23 @@ def validate_review(data: Any) -> dict[str, Any]:
 
     context = data.get("context", {})
     require(isinstance(context, dict), "context must be an object when present")
+    require(context.get("design_goal_status") == "confirmed", "context.design_goal_status must be confirmed before scoring")
+    design_goal = context.get("design_goal")
+    require(isinstance(design_goal, dict), "context.design_goal must be an object")
+    require(
+        design_goal.get("goal_type") in DESIGN_GOAL_TYPES,
+        f"context.design_goal.goal_type must be one of {sorted(DESIGN_GOAL_TYPES)}",
+    )
+    validate_text(design_goal.get("primary_goal"), "context.design_goal.primary_goal")
+    validate_text_list(
+        design_goal.get("success_criteria"),
+        "context.design_goal.success_criteria",
+        allow_empty=False,
+    )
+    require(
+        design_goal.get("source") in DESIGN_GOAL_SOURCES,
+        f"context.design_goal.source must be one of {sorted(DESIGN_GOAL_SOURCES)}",
+    )
     if "brand_charter_status" in context:
         require(context["brand_charter_status"] in {"missing", "candidate", "confirmed"}, "context.brand_charter_status is invalid")
     if profile_name == "wira-v2" and mode == "redesign-comparison":
@@ -524,7 +543,7 @@ def score_review(data: dict[str, Any]) -> dict[str, Any]:
         "score_confidence": rounded_confidence,
         "dimension_scores": dimension_scores,
         "scoring_profile": profile_name,
-        "scoring_version": "1.7",
+        "scoring_version": "1.8",
         "development_readiness": get_development_readiness(
             rounded_overall,
             rounded_confidence,

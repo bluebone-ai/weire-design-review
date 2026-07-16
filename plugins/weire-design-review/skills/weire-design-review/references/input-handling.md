@@ -2,6 +2,10 @@
 
 Choose the narrowest workflow that preserves reliable evidence.
 
+## Mandatory goal gate
+
+Read and run [design-goal-gate.md](design-goal-gate.md) before the source-specific workflows below. When the user submits a screenshot, video, or Figma link without a confirmed design goal and success criterion, acknowledge receipt, ask the required goal question, and stop. Do not inspect design quality, invoke specialists, or score while goal intake is incomplete.
+
 ## Context pack and version labels
 
 Before inspecting a redesign, separate inputs into:

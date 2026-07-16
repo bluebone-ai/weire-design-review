@@ -1,6 +1,6 @@
 ---
 name: weire-design-review
-description: Evidence-based design review for 微热/Weire/Wira/Laboo mobile product screenshots, screen recordings, production baselines, design systems, exported design files, or Figma links. Use when Codex or Claude is asked to 评审微热设计稿、比较微热新版和线上版、审查首页/房间/社交流程、检查品牌与设计系统、分析交互视频、评价 Figma 页面或生成微热设计评分。 Requires Codex Product Design audit on Codex or Claude Design critique on Claude for every readable review, while keeping Wira evidence rules and deterministic scoring authoritative.
+description: Evidence-based design review for 微热/Weire/Wira/Laboo mobile product screenshots, screen recordings, production baselines, design systems, exported design files, or Figma links. Use when Codex or Claude is asked to 评审微热设计稿、比较微热新版和线上版、审查首页/房间/社交流程、检查品牌与设计系统、分析交互视频、评价 Figma 页面或生成微热设计评分。 Requires a user-confirmed design goal before reviewing, then runs Codex Product Design audit on Codex or Claude Design critique on Claude for every readable review, while keeping Wira evidence rules and deterministic scoring authoritative.
 ---
 
 # Weire Design Review
@@ -21,7 +21,7 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
 
 - Keep this skill's evidence rules, Wira brand standard, finding consolidation, and score as the authority.
 - Identify `review.execution_host` as `codex`, `claude`, or `other` before specialist routing.
-- Run the host-native baseline pass for every review with readable visual evidence: Product Design `audit` on Codex; Design `design-critique` on Claude. This pass is required even for a single static screenshot and even when its checklist overlaps the core review.
+- After the design goal is confirmed, run the host-native baseline pass for every review with readable visual evidence: Product Design `audit` on Codex; Design `design-critique` on Claude. This pass is required even for a single static screenshot and even when its checklist overlaps the core review.
 - Record the other platform's baseline pass as `unavailable` because host plugins cannot be invoked across platforms. Do not call it `skipped`.
 - If the host-native baseline capability is missing, disabled, or fails, stop before scoring. State how to install or restore it and do not deliver a completed review.
 - After the required baseline, select the smallest useful set of additional specialist passes. Do not run every optional capability by default.
@@ -33,12 +33,15 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
 ## Core workflow
 
 1. Establish the context pack.
+   - Run [design-goal-gate.md](references/design-goal-gate.md) before inspecting design quality. If a screenshot, video, or Figma link arrives without a confirmed goal and success criterion, ask the required intake question and stop this turn.
+   - Do not infer or silently choose the goal. Do not run core checks, specialist passes, findings, recommendations, scoring, or development readiness until the user confirms the goal contract.
    - Identify platform, target users, core task, review mode, design stage, profile, and requested screens or flow.
    - Locate the current production baseline, design system, new design, target metrics, and any confirmed brand charter.
    - For redesigns, establish one primary redesign objective, its metric, guardrails, main changed variable, and held-constant areas before claiming improvement. Follow [comparison-workflow.md](references/comparison-workflow.md).
    - Treat production UI as a comparison baseline, not as proof that an existing choice is correct.
    - Treat candidate brand principles as hypotheses. Do not issue confirmed deductions from them until the user marks them confirmed. The Wira brand standard is confirmed and binding for `wira-v2`.
 2. Acquire and inspect evidence.
+   - Start this step only after `context.design_goal_status` is `confirmed` with a `user_declared` or `user_confirmed` source.
    - Follow [input-handling.md](references/input-handling.md) for each source type.
    - Inspect every accepted screenshot or key frame before citing it.
    - Assign stable screen IDs. Preserve video timestamps, Figma node IDs, version labels, and design-system references when available.
