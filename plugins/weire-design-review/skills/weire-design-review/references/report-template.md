@@ -1,4 +1,4 @@
-# Design review report template
+# 设计评审报告模板
 
 The scored JSON is the source of truth. Keep one complete review model and render it in one of two modes:
 
@@ -7,9 +7,11 @@ The scored JSON is the source of truth. Keep one complete review model and rende
 
 Both modes use the same findings, strengths, score, and development-readiness gate. Presentation must never change the score.
 
+All designer-facing content must use Simplified Chinese only, including report titles, section headings, field labels, severity labels, conclusions, findings, recommendations, and checklist text. Keep stable IDs such as `F-001`, metric names supplied by the user, and necessary product or capability names unchanged. Never pair a Chinese label with an English translation.
+
 Do not render either report while design-goal intake is incomplete. The intake response contains only artifact receipt/source confirmation and the required question from [design-goal-gate.md](design-goal-gate.md).
 
-## Mode A — Designer Summary / 设计师简版（默认）
+## 模式 A：设计师简版（默认）
 
 The default report answers five practical questions in the smallest useful surface:
 
@@ -21,12 +23,12 @@ The default report answers five practical questions in the smallest useful surfa
 
 Do not expose dimension score tables, coverage matrices, capability logs, specialist synthesis, or raw confidence/delta/evidence-level metadata unless one of them is necessary to explain why the readiness result is `insufficient_evidence`.
 
-### 1. Review Result / 评审结果
+### 1. 评审结果
 
 Use a compact callout:
 
 ```markdown
-## Review Result / 评审结果
+## 评审结果
 
 **{overall_score} 分｜{development_readiness.label}**
 
@@ -45,12 +47,12 @@ Rules:
 - Clarify in one sentence that this is design readiness, not technical feasibility or release approval.
 - Include redesign delta only when matched evidence supports it.
 
-### 2. Revision Tasks / 优先改稿清单
+### 2. 优先改稿清单
 
 Show all confirmed findings. Order them by severity, core-task impact, dependency, then confidence. Use one compact task card per finding:
 
 ```markdown
-### F-001｜重大 Major｜{title}
+### F-001｜重大｜{title}
 
 **位置：** {finding.location}
 
@@ -71,10 +73,10 @@ Show all confirmed findings. Order them by severity, core-task impact, dependenc
 
 Severity labels:
 
-- `blocker` → `阻断 Blocker`
-- `major` → `重大 Major`
-- `moderate` → `一般 Moderate`
-- `minor` → `轻微 Minor`
+- `blocker` → `阻断`
+- `major` → `重大`
+- `moderate` → `一般`
+- `minor` → `轻微`
 
 Writing rules:
 
@@ -95,24 +97,24 @@ Put tentative findings in a separate subsection after all confirmed tasks:
 
 Never mix tentative findings into the must-fix list or present a validation hypothesis as observed behavior.
 
-### 3. Preserve / 本轮需要保留
+### 3. 本轮需要保留
 
 Render up to three evidence-backed strengths that could be accidentally lost during revision:
 
 ```markdown
-## Preserve / 本轮需要保留
+## 本轮需要保留
 
 - `W-001` {specific strength} — {why it supports the goal, usability, brand, or system}
 ```
 
 Prefer strengths related to the confirmed goal or effective existing behavior. Do not use generic praise. If no strength is confirmed, write `暂无需要特别锁定的保留项`.
 
-### 4. Re-review Checklist / 修改后复审条件
+### 4. 修改后复审条件
 
 Convert the accepted findings into a closure checklist:
 
 ```markdown
-## Re-review Checklist / 修改后复审条件
+## 修改后复审条件
 
 - [ ] F-001：{short completion criterion}
 - [ ] F-002：{short completion criterion}
@@ -131,26 +133,26 @@ If files were saved, end with one unobtrusive line:
 
 Do not paste the full audit after the designer summary unless the user requested it.
 
-## Mode B — Full Audit / 完整审计（按需）
+## 模式 B：完整审计（按需）
 
 Render these seven user-facing sections in order:
 
-1. Overall Impression / 整体印象
-2. Usability / 易用性
-3. Visual Hierarchy / 视觉层级
-4. Consistency / 一致性
-5. Accessibility / 无障碍性
-6. What Works Well / 做得好的地方
-7. Priority Recommendations / 优先改进建议
+1. 整体印象
+2. 易用性
+3. 视觉层级
+4. 一致性
+5. 无障碍性
+6. 做得好的地方
+7. 优先改进建议
 
-### Overall Impression / 整体印象
+### 整体印象
 
 Include the one-sentence verdict, confirmed design goal and success criteria, host-specific review engine, overall score and score confidence, development-readiness result, redesign delta when valid, design-goal status, and the most important evidence limitation.
 
 Render the readiness callout immediately after the verdict:
 
 ```markdown
-### Development Readiness / 开发准入
+### 开发准入
 
 **结论：** {scores.development_readiness.label}
 
@@ -161,27 +163,27 @@ Render the readiness callout immediately after the verdict:
 
 Clarify that this covers design readiness, not technical feasibility or release approval.
 
-### Usability / 易用性
+### 易用性
 
 Summarize whether users can understand the current goal, find the next action, predict the result, participate with low pressure, and recover from represented states. Reuse the relevant profile findings; do not create another deduction.
 
-### Visual Hierarchy / 视觉层级
+### 视觉层级
 
 Summarize focus, primary action, scan order, grouping, density, and competing accents. Use `visual_hierarchy` when present; otherwise cite the closest supported visual-system evidence.
 
-### Consistency / 一致性
+### 一致性
 
 Summarize visual-language coherence and design-system behavior. Cover material, form, graphic or illustration style, media, motion character, components, and semantic tokens only where evidence exists.
 
-### Accessibility / 无障碍性
+### 无障碍性
 
 Summarize contrast, text legibility, touch targets, color dependence, focus, scaling, and reduced-motion risks. Separate measured violations from visual estimates. Never claim full compliance from screenshots alone.
 
-### What Works Well / 做得好的地方
+### 做得好的地方
 
 Render evidence-backed strengths. Prefer strengths that support the design goal, brand, usability, or system coherence. Do not invent praise.
 
-### Priority Recommendations / 优先改进建议
+### 优先改进建议
 
 Select at most three root-cause changes from confirmed findings. Write each as `action → expected design or user outcome → metric or validation method when needed`. This summary does not replace the full finding list.
 

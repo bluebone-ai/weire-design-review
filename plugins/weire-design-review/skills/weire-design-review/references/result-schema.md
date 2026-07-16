@@ -22,6 +22,7 @@ Create UTF-8 JSON. `profile` defaults to `generic-mobile-v1`; use `wira-v1` for 
     "profile": "wira-v2",
     "mode": "redesign-comparison",
     "output_mode": "designer_summary",
+    "output_language": "zh-CN",
     "execution_host": "codex",
     "review_engine": "wira-core+codex-product-design",
     "source_type": "mixed",
@@ -58,6 +59,7 @@ Allowed values:
 - `profile`: `generic-mobile-v1`, `wira-v1`, `wira-v2`
 - `mode`: `artifact`, `redesign-comparison`, `flow-audit`, `direction-comparison`
 - `output_mode`: `designer_summary`, `audit_full`; default to `designer_summary` and use `audit_full` only when the user explicitly requests the complete audit surface
+- `output_language`: always `zh-CN`; all designer-facing report content uses Simplified Chinese only, while schema keys and stable enum values remain unchanged
 - `execution_host`: `codex`, `claude`, `other`
 - `review_engine`: `wira-core+codex-product-design` on Codex; `wira-core+claude-design` on Claude
 - `source_type`: `screenshot`, `video`, `figma`, `mixed`
@@ -354,7 +356,7 @@ Run `python3 scripts/review_score.py <review.json> --write`. The script adds:
     "score_confidence": 0.77,
     "dimension_scores": {},
     "scoring_profile": "wira-v2",
-    "scoring_version": "1.10",
+    "scoring_version": "1.11",
     "development_readiness": {
       "status": "conditional_handoff",
       "label": "有条件进入开发",
@@ -388,12 +390,12 @@ For redesign comparisons, score both versions separately with matched scope. A d
 
 ## Report rendering
 
-The scored JSON remains the source of truth. `review.output_mode` changes only presentation, never evidence, findings, score, or readiness.
+The scored JSON remains the source of truth. `review.output_mode` changes only presentation, never evidence, findings, score, or readiness. `review.output_language` is always `zh-CN`: translate all visible section headings, field labels, severity labels, conclusions, findings, recommendations, and checklist items into Simplified Chinese. Do not render bilingual labels. Keep stable IDs, user-supplied metric names, and necessary product or capability names unchanged.
 
-For `designer_summary`, follow the four default sections in [report-template.md](report-template.md): Review Result, Revision Tasks, Preserve, and Re-review Checklist. Lead with score and readiness. Render every confirmed finding as a compact task card with ID, severity, location, concrete problem, impact, recommendation, and completion criteria. Separate tentative findings under `待验证（不扣分）`. Render at most three strengths and derive closure checks from all blocker and major findings plus goal-critical moderate findings.
+For `designer_summary`, follow the four default sections in [report-template.md](report-template.md): 评审结果、优先改稿清单、本轮需要保留、修改后复审条件. Lead with score and readiness. Render every confirmed finding as a compact task card with ID, severity, location, concrete problem, impact, recommendation, and completion criteria. Separate tentative findings under `待验证（不扣分）`. Render at most three strengths and derive closure checks from all blocker and major findings plus goal-critical moderate findings.
 
 Do not render dimension score tables, dimension or multi-scale coverage, raw confidence/delta/evidence-level metadata, specialist synthesis, or capability-pass logs in the default visible response. These fields remain required in the JSON and full audit. When the environment supports files, save the full audit and scored JSON and provide only their paths after the concise report.
 
-For `audit_full`, render the seven audit sections—Overall Impression, Usability, Visual Hierarchy, Consistency, Accessibility, What Works Well, and Priority Recommendations—then the evidence, coverage, detailed score, findings, validation, limitations, specialist synthesis, and capability-pass log defined in [report-template.md](report-template.md). `Usability` is a presentation roll-up for `wira-v2`, not a new scoring dimension; never deduct twice.
+For `audit_full`, render the seven audit sections—整体印象、易用性、视觉层级、一致性、无障碍性、做得好的地方、优先改进建议—then the evidence, coverage, detailed score, findings, validation, limitations, specialist synthesis, and capability-pass log defined in [report-template.md](report-template.md). 易用性 is a presentation roll-up for `wira-v2`, not a new scoring dimension; never deduct twice.
 
 In the full audit, render the coverage tables before detailed finding cards. Every visible region must appear in `Screen / Section Coverage`; use component and state tables to show inspection depth without creating extra scoring dimensions. Render `scope.dimension_coverage` so readers can trace the native expert, adaptive complement, final coverage, and source passes. Render `specialist_synthesis` before the capability-pass log.

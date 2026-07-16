@@ -52,6 +52,7 @@ STATUSES = {"confirmed", "tentative"}
 SOURCE_TYPES = {"screenshot", "video", "figma", "mixed"}
 REVIEW_MODES = {"artifact", "redesign-comparison", "flow-audit", "direction-comparison"}
 OUTPUT_MODES = {"designer_summary", "audit_full"}
+OUTPUT_LANGUAGE = "zh-CN"
 EXECUTION_HOSTS = {"codex", "claude", "other"}
 REVIEW_ENGINES = {
     "codex": "wira-core+codex-product-design",
@@ -140,6 +141,10 @@ def validate_review(data: Any) -> dict[str, Any]:
     require(mode in REVIEW_MODES, f"review.mode must be one of {sorted(REVIEW_MODES)}")
     output_mode = review.get("output_mode")
     require(output_mode in OUTPUT_MODES, f"review.output_mode must be one of {sorted(OUTPUT_MODES)}")
+    require(
+        review.get("output_language") == OUTPUT_LANGUAGE,
+        f"review.output_language must be {OUTPUT_LANGUAGE}",
+    )
     execution_host = review.get("execution_host")
     require(execution_host in EXECUTION_HOSTS, f"review.execution_host must be one of {sorted(EXECUTION_HOSTS)}")
     if execution_host in REVIEW_ENGINES:
@@ -664,7 +669,7 @@ def score_review(data: dict[str, Any]) -> dict[str, Any]:
         "score_confidence": rounded_confidence,
         "dimension_scores": dimension_scores,
         "scoring_profile": profile_name,
-        "scoring_version": "1.10",
+        "scoring_version": "1.11",
         "development_readiness": get_development_readiness(
             rounded_overall,
             rounded_confidence,

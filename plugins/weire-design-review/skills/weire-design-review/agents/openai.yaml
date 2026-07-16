@@ -1,4 +1,4 @@
 interface:
   display_name: "微热设计评审"
   short_description: "先确认目标，再输出得分、开发准入与可执行改稿清单"
-  default_prompt: "Use $weire-design-review to confirm my design goal first, run the full host-native design expert, adaptively complement uncovered Wira dimensions, and default to a concise designer report with the score, 85-point development-readiness decision, concrete revision tasks, preserve items, and re-review criteria."
+  default_prompt: "Use $weire-design-review to confirm my design goal first, run the full host-native design expert, adaptively complement uncovered Wira dimensions, and default to a Simplified-Chinese-only designer report with the score, 85-point development-readiness decision, concrete revision tasks, preserve items, and re-review criteria."

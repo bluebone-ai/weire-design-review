@@ -53,6 +53,7 @@ def make_validated_review(execution_host: str = "codex") -> dict:
             "platform": "ios",
             "core_task": "Find the primary action",
             "output_mode": "designer_summary",
+            "output_language": "zh-CN",
         }
     )
     payload["scope"]["limitations"] = ["Static screenshot only"]
@@ -194,7 +195,7 @@ class DevelopmentReadinessTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             scored = json.loads(review_path.read_text(encoding="utf-8"))
-        self.assertEqual(scored["scores"]["scoring_version"], "1.10")
+        self.assertEqual(scored["scores"]["scoring_version"], "1.11")
         self.assertEqual(scored["scores"]["development_readiness"]["status"], "ready_for_development")
 
 
@@ -348,6 +349,12 @@ class ReportModeTests(unittest.TestCase):
         payload = make_validated_review("codex")
         payload["review"]["output_mode"] = "verbose"
         with self.assertRaisesRegex(SCORER.ReviewValidationError, "review.output_mode"):
+            SCORER.validate_review(payload)
+
+    def test_simplified_chinese_output_is_required(self) -> None:
+        payload = make_validated_review("codex")
+        payload["review"]["output_language"] = "bilingual"
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "review.output_language must be zh-CN"):
             SCORER.validate_review(payload)
 
 

@@ -26,6 +26,6 @@
       "Image and flow analysis",
       "Deterministic scoring"
     ],
-    "defaultPrompt": "使用 $weire-design-review 评审这张微热设计稿，先确认目标和证据，完整运行当前平台设计专家，再自适应补齐维度；默认给我设计师简版，包括得分、开发准入、具体问题、优化动作、保留项和复审条件。"
+    "defaultPrompt": "使用 $weire-design-review 评审这张微热设计稿，先确认目标和证据，完整运行当前平台设计专家，再自适应补齐维度；默认用简体中文给我设计师简版，包括得分、开发准入、具体问题、优化动作、保留项和复审条件，不使用中英双语标题。"
   }
 }

@@ -15,14 +15,14 @@ Only confirmed findings whose confidence meets the scorer threshold count toward
 
 ## Reporting contract
 
-Render the gate prominently inside `Overall Impression / 整体印象` using the scored JSON fields:
+Render the gate prominently inside `整体印象` using the scored JSON fields. All visible labels and explanations must be Simplified Chinese only:
 
 ```markdown
-### Development Readiness / 开发准入
+### 开发准入
 
 **结论：** 暂不建议进入开发
 
-- **依据：** 总分 68.0，低于 70 分调整线；存在 1 个 Blocker
+- **依据：** 总分 68.0，低于 70 分调整线；存在 1 个阻断问题
 - **正常开发线：** 85 分
 - **下一步：** 先完成一轮设计调整，关闭阻断或重大问题后重新评审
 ```

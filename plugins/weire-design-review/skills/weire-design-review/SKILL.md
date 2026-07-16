@@ -87,6 +87,7 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
    - Read [development-readiness.md](references/development-readiness.md) and use the generated `development_readiness` gate without overriding its thresholds or severity rules.
 9. Deliver the review.
    - Set `review.output_mode` to `designer_summary` unless the user explicitly requests a complete audit, scoring details, coverage tables, expert logs, or archive output; then use `audit_full`.
+   - Render every designer-facing report in Simplified Chinese only. Keep schema keys, stable IDs, capability names, and machine-readable enum values unchanged internally; do not expose bilingual section titles, field labels, or severity labels.
    - Lead with verdict, score, development readiness, and redesign delta when applicable. Keep raw confidence metadata in the full audit unless it changes the readiness decision.
    - Render accepted evidence inline when possible.
    - For `designer_summary`, render only the four designer-facing sections in [report-template.md](references/report-template.md): review result, revision tasks, preserve list, and re-review checklist.
@@ -116,10 +117,10 @@ Never translate stakeholder words such as `脏`, `土`, `暧昧`, or `下沉` di
 
 Default to `designer_summary`. Use these user-facing sections in order:
 
-1. Review Result / 评审结果
-2. Revision Tasks / 优先改稿清单
-3. Preserve / 本轮需要保留
-4. Re-review Checklist / 修改后复审条件
+1. 评审结果
+2. 优先改稿清单
+3. 本轮需要保留
+4. 修改后复审条件
 
 The first section must show the total score, development-readiness conclusion, 85-point normal development line, confirmed goal, score/severity reason, and immediate next action. Clarify that this is design readiness, not technical feasibility or release approval.
 
@@ -131,6 +132,6 @@ Build the re-review checklist from all blocker and major findings plus the highe
 
 Do not print dimension score tables, coverage matrices, capability logs, specialist synthesis, raw confidence/delta/evidence-level metadata, or the seven audit roll-up sections in the default response. These remain mandatory in the structured review and saved full audit. Show a concise artifact link or path when a full audit file was saved.
 
-Use `audit_full` only when explicitly requested. It contains the seven audit sections—Overall Impression, Usability, Visual Hierarchy, Consistency, Accessibility, What Works Well, and Priority Recommendations—followed by dimension and multi-scale coverage, detailed findings, validation hypotheses, limitations, scoring, specialist synthesis, and the capability-pass log. Never deduct twice when the same finding appears in a roll-up section.
+Use `audit_full` only when explicitly requested. It contains the seven Chinese audit sections—整体印象、易用性、视觉层级、一致性、无障碍性、做得好的地方、优先改进建议—followed by dimension and multi-scale coverage, detailed findings, validation hypotheses, limitations, scoring, specialist synthesis, and the capability-pass log. Never deduct twice when the same finding appears in a roll-up section.
 
 Use `N/A` for unsupported dimensions. Never represent `N/A` as zero.

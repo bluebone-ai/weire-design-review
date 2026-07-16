@@ -113,13 +113,33 @@ def validate_skill() -> None:
     require(report_template.is_file(), "report-template.md is missing")
     report_text = report_template.read_text(encoding="utf-8")
     for required_section in (
+        "评审结果",
+        "优先改稿清单",
+        "本轮需要保留",
+        "修改后复审条件",
+        "完整审计",
+    ):
+        require(required_section in report_text, f"report-template.md is missing {required_section}")
+    for forbidden_label in (
         "Review Result / 评审结果",
         "Revision Tasks / 优先改稿清单",
         "Preserve / 本轮需要保留",
         "Re-review Checklist / 修改后复审条件",
         "Full Audit / 完整审计",
+        "Overall Impression / 整体印象",
+        "Usability / 易用性",
+        "Visual Hierarchy / 视觉层级",
+        "Consistency / 一致性",
+        "Accessibility / 无障碍性",
+        "What Works Well / 做得好的地方",
+        "Priority Recommendations / 优先改进建议",
+        "Development Readiness / 开发准入",
+        "重大 Major",
+        "一般 Moderate",
+        "轻微 Minor",
+        "阻断 Blocker",
     ):
-        require(required_section in report_text, f"report-template.md is missing {required_section}")
+        require(forbidden_label not in report_text, f"report-template.md contains bilingual label: {forbidden_label}")
 
     markdown_files = [skill_file, *sorted((SKILL / "references").glob("*.md"))]
     for markdown_file in markdown_files:
