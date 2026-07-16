@@ -90,6 +90,7 @@ def validate_manifests() -> str:
 
 def validate_skill() -> None:
     skill_file = SKILL / "SKILL.md"
+    report_template = SKILL / "references" / "report-template.md"
     require(skill_file.is_file(), "shared SKILL.md is missing")
     text = skill_file.read_text(encoding="utf-8")
     match = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
@@ -107,6 +108,18 @@ def validate_skill() -> None:
     )
     require((SKILL / "references" / "design-goal-gate.md").is_file(), "design-goal-gate.md is missing")
     require("design-goal-gate.md" in text, "SKILL.md must run the mandatory design goal gate")
+    require("designer_summary" in text, "SKILL.md must define the default designer summary mode")
+    require("audit_full" in text, "SKILL.md must retain the optional full audit mode")
+    require(report_template.is_file(), "report-template.md is missing")
+    report_text = report_template.read_text(encoding="utf-8")
+    for required_section in (
+        "Review Result / 评审结果",
+        "Revision Tasks / 优先改稿清单",
+        "Preserve / 本轮需要保留",
+        "Re-review Checklist / 修改后复审条件",
+        "Full Audit / 完整审计",
+    ):
+        require(required_section in report_text, f"report-template.md is missing {required_section}")
 
     markdown_files = [skill_file, *sorted((SKILL / "references").glob("*.md"))]
     for markdown_file in markdown_files:

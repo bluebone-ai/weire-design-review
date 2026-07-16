@@ -21,6 +21,7 @@ Create UTF-8 JSON. `profile` defaults to `generic-mobile-v1`; use `wira-v1` for 
     "title": "微热新版首页评审",
     "profile": "wira-v2",
     "mode": "redesign-comparison",
+    "output_mode": "designer_summary",
     "execution_host": "codex",
     "review_engine": "wira-core+codex-product-design",
     "source_type": "mixed",
@@ -56,6 +57,7 @@ Allowed values:
 
 - `profile`: `generic-mobile-v1`, `wira-v1`, `wira-v2`
 - `mode`: `artifact`, `redesign-comparison`, `flow-audit`, `direction-comparison`
+- `output_mode`: `designer_summary`, `audit_full`; default to `designer_summary` and use `audit_full` only when the user explicitly requests the complete audit surface
 - `execution_host`: `codex`, `claude`, `other`
 - `review_engine`: `wira-core+codex-product-design` on Codex; `wira-core+claude-design` on Claude
 - `source_type`: `screenshot`, `video`, `figma`, `mixed`
@@ -287,12 +289,17 @@ For an applicable dimension, `native_status: full` requires `complement_status: 
       "source_pass_ids": ["core", "P-01"],
       "delta": "worse",
       "title": "The primary room-discovery action lost emphasis",
+      "location": "首页首屏 / 玩法入口区上方",
       "evidence": {
         "screen_id": "candidate-home",
         "description": "Four promotional modules precede the first room card"
       },
       "impact": "Users must scan promotional content before starting the core task",
-      "recommendation": "Move active room discovery into the first viewport and demote secondary promotions"
+      "recommendation": "Move active room discovery into the first viewport and demote secondary promotions",
+      "completion_criteria": [
+        "The first viewport contains a recognizable active-room entry point",
+        "A five-second first-click test identifies room discovery as the primary next action"
+      ]
     }
   ]
 }
@@ -308,6 +315,8 @@ Allowed values:
 - confidence: number from `0` to `1`
 
 Evidence requires `screen_id` and `description`; it may also include `region`, `timestamp_ms`, `node_id`, `baseline_screen_id`, or `design_system_ref`.
+
+Every finding requires a concise `location` that names the screen or step plus the smallest observable region or state. It also requires a non-empty `completion_criteria` array. Each criterion must be observable in a later screenshot, prototype, Figma inspection, implementation measurement, or user test; do not use subjective closure language such as `looks better`.
 
 `source_pass_ids` is optional and defaults conceptually to `["core"]`. It may contain `core` and IDs of `used` entries in `capability_passes`. It records contribution provenance, not independent evidence and not extra scoring weight.
 
@@ -345,7 +354,7 @@ Run `python3 scripts/review_score.py <review.json> --write`. The script adds:
     "score_confidence": 0.77,
     "dimension_scores": {},
     "scoring_profile": "wira-v2",
-    "scoring_version": "1.9",
+    "scoring_version": "1.10",
     "development_readiness": {
       "status": "conditional_handoff",
       "label": "有条件进入开发",
@@ -379,14 +388,12 @@ For redesign comparisons, score both versions separately with matched scope. A d
 
 ## Report rendering
 
-The scored JSON remains the source of truth. Render it with the seven fixed sections in [report-template.md](report-template.md): Overall Impression, Usability, Visual Hierarchy, Consistency, Accessibility, What Works Well, and Priority Recommendations. Render `development_readiness` prominently inside Overall Impression.
+The scored JSON remains the source of truth. `review.output_mode` changes only presentation, never evidence, findings, score, or readiness.
 
-`Usability` is a presentation roll-up for `wira-v2`, not a new scoring dimension. Pull its evidence from the mapped source dimensions and do not deduct again. Follow the seven sections with the evidence, detailed score, findings, validation, limitation, and artifact appendix.
+For `designer_summary`, follow the four default sections in [report-template.md](report-template.md): Review Result, Revision Tasks, Preserve, and Re-review Checklist. Lead with score and readiness. Render every confirmed finding as a compact task card with ID, severity, location, concrete problem, impact, recommendation, and completion criteria. Separate tentative findings under `待验证（不扣分）`. Render at most three strengths and derive closure checks from all blocker and major findings plus goal-critical moderate findings.
 
-Render each item in `findings` as a detailed problem card following [report-template.md](report-template.md). Preserve the finding ID and keep evidence, impact, recommendation, and validation visibly separate. Priority recommendations summarize at most three root causes and do not replace the full cards.
+Do not render dimension score tables, dimension or multi-scale coverage, raw confidence/delta/evidence-level metadata, specialist synthesis, or capability-pass logs in the default visible response. These fields remain required in the JSON and full audit. When the environment supports files, save the full audit and scored JSON and provide only their paths after the concise report.
 
-Render the coverage tables before the cards. Every visible region must appear in `Screen / Section Coverage`; use the component and state tables to show the depth inspected without creating extra scoring dimensions.
+For `audit_full`, render the seven audit sections—Overall Impression, Usability, Visual Hierarchy, Consistency, Accessibility, What Works Well, and Priority Recommendations—then the evidence, coverage, detailed score, findings, validation, limitations, specialist synthesis, and capability-pass log defined in [report-template.md](report-template.md). `Usability` is a presentation roll-up for `wira-v2`, not a new scoring dimension; never deduct twice.
 
-Render `scope.dimension_coverage` before detailed findings so readers can see the native expert's coverage, the specific gap that triggered a Wira complement, the final coverage state, and provenance. A complement is part of the same host-specific review engine; it is not a simulated cross-host expert.
-
-Render `specialist_synthesis` as a compact appendix table before the capability-pass log. Readers must be able to trace adopted entries to final finding or strength IDs, retained entries to tentative findings or hypotheses, and rejected entries to an explicit rationale.
+In the full audit, render the coverage tables before detailed finding cards. Every visible region must appear in `Screen / Section Coverage`; use component and state tables to show inspection depth without creating extra scoring dimensions. Render `scope.dimension_coverage` so readers can trace the native expert, adaptive complement, final coverage, and source passes. Render `specialist_synthesis` before the capability-pass log.

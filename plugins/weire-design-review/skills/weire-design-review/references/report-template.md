@@ -1,105 +1,72 @@
 # Design review report template
 
-Use these seven user-facing sections for every review. Keep the underlying profile dimensions and deterministic score; the report sections reorganize evidence for readability and must not create duplicate deductions.
+The scored JSON is the source of truth. Keep one complete review model and render it in one of two modes:
 
-## 1. Overall Impression / 整体印象
+- `designer_summary` is the default visible response for designers.
+- `audit_full` is the complete evidence and governance report, rendered only when the user explicitly asks for the full report, scoring detail, coverage, expert logs, or an audit archive.
 
-Include:
+Both modes use the same findings, strengths, score, and development-readiness gate. Presentation must never change the score.
 
-- one-sentence verdict;
-- the confirmed design goal and success criteria;
-- the host-specific review engine: `Wira Core + Codex Product Design` or `Wira Core + Claude Design`;
-- overall score and score confidence;
-- the deterministic `Development Readiness / 开发准入` result, decision basis, 85-point normal development line, and next action;
-- redesign delta when comparison is valid;
-- redesign-goal status and the most important evidence limitation.
+Do not render either report while design-goal intake is incomplete. The intake response contains only artifact receipt/source confirmation and the required question from [design-goal-gate.md](design-goal-gate.md).
 
-Do not claim the redesign is better when its primary objective is missing or inferred.
+## Mode A — Designer Summary / 设计师简版（默认）
 
-Do not render this report at all while design-goal intake is incomplete. The intake response must contain only artifact receipt/source confirmation and the required question from [design-goal-gate.md](design-goal-gate.md).
+The default report answers five practical questions in the smallest useful surface:
 
-Render this callout immediately after the one-sentence verdict:
+1. What did this design score?
+2. Can it enter development?
+3. What exactly must change, and how important is each issue?
+4. What should not be lost during revision?
+5. What conditions must the next version satisfy?
+
+Do not expose dimension score tables, coverage matrices, capability logs, specialist synthesis, or raw confidence/delta/evidence-level metadata unless one of them is necessary to explain why the readiness result is `insufficient_evidence`.
+
+### 1. Review Result / 评审结果
+
+Use a compact callout:
 
 ```markdown
-### Development Readiness / 开发准入
+## Review Result / 评审结果
 
-**结论：** {scores.development_readiness.label}
+**{overall_score} 分｜{development_readiness.label}**
 
-- **依据：** {overall score, evidence confidence, and translated reason codes with related finding IDs}
-- **正常开发线：** 85 分
-- **下一步：** {scores.development_readiness.recommended_action}
+- **开发标准：** 85 分以上，且没有计分的阻断或重大问题，证据充分
+- **本次目标：** {confirmed design goal}
+- **判断依据：** {plain-language readiness reasons and blocker/major counts}
+- **下一步：** {development_readiness.recommended_action}
 ```
 
-Use the generated gate from [development-readiness.md](development-readiness.md). Do not manually promote a design because its total score looks high. Clarify that the result covers design readiness, not technical feasibility or release approval.
+Rules:
 
-## 2. Usability / 易用性
+- Put the score and readiness label on the first visible line.
+- Translate readiness reason codes into plain language. Mention related finding IDs where useful.
+- If a severity override changed the result, say so directly: for example, `总分达到 85，但 F-001 为重大问题，因此不能正常进入开发`.
+- If evidence is insufficient, replace false precision with `证据不足，暂不判定开发准入`, explain the missing source, and request the smallest evidence needed.
+- Clarify in one sentence that this is design readiness, not technical feasibility or release approval.
+- Include redesign delta only when matched evidence supports it.
 
-Summarize whether users can understand the current goal, find the next action, predict the result, participate with low pressure, and recover from represented states.
+### 2. Revision Tasks / 优先改稿清单
 
-Use existing findings rather than assigning a new deduction:
-
-| Profile | Source dimensions |
-|---|---|
-| `generic-mobile-v1` | `usability`, `content`, `state_coverage`, `interaction_motion` |
-| `wira-v1` | `task_flow_clarity`, `usability`, `social_connection`, `content_tone`, `state_coverage`, `interaction_motion` |
-| `wira-v2` | `task_flow_delta`, `baseline_capability`, `social_connection`, `content_tone`, `state_coverage`, `interaction_motion` |
-
-When `task_flow_delta` is `N/A`, state that product quality can be reviewed but improvement against the redesign objective cannot.
-
-## 3. Visual Hierarchy / 视觉层级
-
-Summarize focus, primary action, scan order, grouping, density, and competing accents. Use the explicit `visual_hierarchy` dimension when present; otherwise cite the most relevant visual-system evidence and mark numerical comparison `N/A` if unsupported.
-
-## 4. Consistency / 一致性
-
-Summarize visual-language coherence and design-system behavior. Cover material, form, graphic/illustration, media, motion character, components, and semantic tokens only where evidence exists. Use `layout_consistency`, `visual_system`, or `design_system_evolution` according to the profile.
-
-## 5. Accessibility / 无障碍性
-
-Summarize contrast, text legibility, touch targets, color dependence, focus, scaling, and reduced-motion risks. Separate measured violations from visually estimated risks. Never claim full compliance from screenshots alone.
-
-## 6. What Works Well / 做得好的地方
-
-Render evidence-backed `strengths`. Prefer strengths that support the core objective, brand, usability, or system coherence. Do not use generic praise or convert the absence of findings into a strength.
-
-## 7. Priority Recommendations / 优先改进建议
-
-Select at most three root-cause changes from confirmed findings. Order by task impact, severity, confidence, and dependency. Write each as:
-
-`Action → expected design or user outcome → metric or validation method when needed.`
-
-Do not repeat the full finding list here.
-
-## Detailed Findings / 详细问题卡
-
-Before the finding cards, follow [multi-scale-audit.md](multi-scale-audit.md) and render:
-
-- `Dimension Coverage & Complement`: every profile dimension, native-expert coverage, observed gap, Wira complement status, final coverage, and source pass IDs;
-- `Screen / Section Coverage`: every visible region, its purpose, review status, and related finding IDs;
-- `Component / Element Audit`: core, repeated, novel, inconsistent, and risky components, with low-risk standard components grouped when appropriate;
-- `State / Edge-case Audit`: relevant quantities, content boundaries, interaction states, device conditions, loading, empty, error, and recovery behavior.
-
-After those tables, render every consolidated finding as an individual card. Use this exact information hierarchy:
+Show all confirmed findings. Order them by severity, core-task impact, dependency, then confidence. Use one compact task card per finding:
 
 ```markdown
-### F-001｜重大 Major｜Brand alignment / 品牌方向
+### F-001｜重大 Major｜{title}
 
-`状态：Confirmed` · `置信度：0.92` · `相对现网：Worse` · `证据级别：Measured`
+**位置：** {finding.location}
 
-**问题**
-One clear problem statement.
+**问题：** {one concrete visible issue}
 
-**证据**
-Screen or step, visible region, exact copy or measurement, and baseline comparison when available.
+**为什么重要：** {one short user, task, brand, accessibility, or guardrail consequence}
 
-**影响**
-The user, task, brand, accessibility, or guardrail consequence. Keep unproven behavioral effects as risks.
+**怎么优化：**
 
-**建议**
-One actionable change and its expected design outcome.
+- {specific design action}
+- {optional dependent action}
 
-**验证**
-Metric, prototype task, implementation measurement, or perception test needed to close uncertainty.
+**完成标准：**
+
+- {observable acceptance criterion}
+- {optional metric, prototype task, or implementation measurement}
 ```
 
 Severity labels:
@@ -109,59 +76,131 @@ Severity labels:
 - `moderate` → `一般 Moderate`
 - `minor` → `轻微 Minor`
 
-Order cards by severity, core-task impact, and confidence. Preserve IDs from the scored JSON. Show tentative findings too, but label them `Tentative / 待验证` and state that they do not reduce the score. Do not merge evidence, impact, and recommendation into one paragraph.
+Writing rules:
 
-## Required appendix
+- `位置` must identify the screen/step and visible region or state. Do not use a vague label such as `首页整体` when a smaller location is observable.
+- `问题` describes the visible mechanism, not a taste word. Translate `脏`, `土`, `暧昧`, or `下沉` into color, contrast, material, hierarchy, content, or category-signaling evidence.
+- `怎么优化` must be an action a designer can perform. Avoid `加强层级`, `提升品质`, or `优化体验` without specifying what changes.
+- `完成标准` must make closure reviewable. It can be a visible condition, token or measurement, prototype task result, or required user test.
+- Keep evidence provenance and raw measurements in the full audit. Include a measurement in the summary only when the action depends on it, such as contrast or touch target size.
+- Do not cap the number of confirmed problem cards. A concise report means compact cards, not hidden issues.
 
-After the seven sections, include:
+Put tentative findings in a separate subsection after all confirmed tasks:
 
-1. evidence scope, context, and assumptions;
-2. current-versus-new delta table when applicable;
-3. detailed dimension scores with `N/A` preserved;
-4. dimension coverage and adaptive-complement table;
-5. screen/section, component/element, and state/edge-case audit tables;
-6. detailed finding cards ordered by severity and task impact;
-7. validation hypotheses and target metrics;
-8. evidence limitations and untested areas;
-9. specialist capability synthesis with adopted, retained, and not-adopted conclusions;
-10. capability-pass log with provider, purpose, status, inputs, contribution scope, and limitations;
-11. saved artifact locations.
+```markdown
+### 待验证（不扣分）
 
-Render dimension coverage as:
+- `F-006` {hypothesis} → {evidence or test needed}
+```
 
-| Dimension | Native expert | Native coverage | Gap | Wira complement | Final coverage | Sources |
-|---|---|---|---|---|---|---|
-| `color_expression` | Product Design audit | Partial | Palette cleanliness and Wira category signal not inspected | Used / W-01 | Full | P-01, W-01 |
-| `state_coverage` | Product Design audit | Unsupported | Static screenshot | N/A | Unsupported / N/A | — |
+Never mix tentative findings into the must-fix list or present a validation hypothesis as observed behavior.
 
-Use `Wira adaptive complement`, not the unavailable cross-host expert, as the supplement label. Do not claim that a dimension was complemented when its source pass did not run. Keep `partial` after supplementation when the accepted evidence still limits the conclusion.
+### 3. Preserve / 本轮需要保留
 
-Render the specialist synthesis as:
+Render up to three evidence-backed strengths that could be accidentally lost during revision:
 
-| ID | Source pass | Specialist conclusion | Disposition | Report destination | Rationale |
-|---|---|---|---|---|---|
-| SI-001 | P-01 / Product Design audit | The promoted entrance is dominant but its illustration is semantically incomplete | Adopted | F-003 | Verified on CAND-HOME-01 and merged with the core finding |
-| SI-002 | C-01 / Claude Design critique | The palette may cue dating-category associations | Retained for validation | H-001 | Requires a target-user perception test |
-| SI-003 | P-01 / Product Design audit | Add persistent tooltips to all gameplay cards | Not adopted | — | Adds unsupported complexity |
+```markdown
+## Preserve / 本轮需要保留
 
-Keep this table concise, but do not omit a used critique pass because its candidates were rejected. Do not paste raw plugin responses. The final report remains authoritative; this table explains how specialist material was handled.
+- `W-001` {specific strength} — {why it supports the goal, usability, brand, or system}
+```
 
-Render the capability-pass log as:
+Prefer strengths related to the confirmed goal or effective existing behavior. Do not use generic praise. If no strength is confirmed, write `暂无需要特别锁定的保留项`.
 
-| ID | Provider | Capability | Invocation | Status | Input kind / source | Contribution scope | Limitations |
-|---|---|---|---|---|---|---|---|
-| P-01 | Codex Product Design | audit | Required | Used | Static screenshot / CAND-HOME-01 | Evidence and candidate findings | Interaction and unshown states unsupported |
-| W-01 | Wira Core | adaptive-dimension-complement | Automatic | Used | Static screenshot / CAND-HOME-01 | Color expression and brand-alignment gaps | Interaction and unshown states unsupported |
-| C-01 | Claude Design | design-critique | Required | Unavailable | — | None | Claude plugin cannot run in the Codex host |
+### 4. Re-review Checklist / 修改后复审条件
 
-Always show both required baseline rows. The row matching `review.execution_host` must be `Used`; the cross-host row must be `Unavailable`. If the host-native row was not used, do not render a scored final report.
+Convert the accepted findings into a closure checklist:
 
-## Rendering rules
+```markdown
+## Re-review Checklist / 修改后复审条件
 
-- `Overall Impression`, `What Works Well`, and `Priority Recommendations` are report sections, not scoring dimensions.
-- `Usability` is a non-duplicating roll-up of existing dimensions for `wira-v2`; do not subtract points again.
-- `Visual Hierarchy`, `Consistency`, and `Accessibility` expose their underlying dimension scores where an exact mapping exists.
-- Use `N/A` rather than an inferred pass when evidence or redesign context is insufficient.
-- Show specialist provenance through `source_pass_ids`, but never use the number of agreeing passes as evidence strength or an extra deduction.
-- Map every adopted or retained synthesis item to a stable finding, strength, or hypothesis ID. Keep not-adopted items visible with an explicit rationale and no score effect.
-- Mark the host-native Product Design audit or Claude Design critique of a readable static screenshot as `Used`; describe unsupported interaction evidence in `限制`, and deduplicate overlapping findings after the pass runs.
+- [ ] F-001：{short completion criterion}
+- [ ] F-002：{short completion criterion}
+- [ ] 总分达到 85 分以上
+- [ ] 没有计分的阻断或重大问题
+- [ ] 关键结论的证据充分；截图无法判断的交互或状态已用原型、录屏、Figma 数值或实现验证补齐
+```
+
+Include every blocker and major finding. Add high-impact moderate findings when they are dependencies for the redesign goal or development handoff. Do not turn every minor polish item into a release gate.
+
+If files were saved, end with one unobtrusive line:
+
+```markdown
+完整审计与评分依据已保存：{full_report_path} · {scored_json_path}
+```
+
+Do not paste the full audit after the designer summary unless the user requested it.
+
+## Mode B — Full Audit / 完整审计（按需）
+
+Render these seven user-facing sections in order:
+
+1. Overall Impression / 整体印象
+2. Usability / 易用性
+3. Visual Hierarchy / 视觉层级
+4. Consistency / 一致性
+5. Accessibility / 无障碍性
+6. What Works Well / 做得好的地方
+7. Priority Recommendations / 优先改进建议
+
+### Overall Impression / 整体印象
+
+Include the one-sentence verdict, confirmed design goal and success criteria, host-specific review engine, overall score and score confidence, development-readiness result, redesign delta when valid, design-goal status, and the most important evidence limitation.
+
+Render the readiness callout immediately after the verdict:
+
+```markdown
+### Development Readiness / 开发准入
+
+**结论：** {scores.development_readiness.label}
+
+- **依据：** {overall score, evidence confidence, translated reason codes, and related finding IDs}
+- **正常开发线：** 85 分
+- **下一步：** {scores.development_readiness.recommended_action}
+```
+
+Clarify that this covers design readiness, not technical feasibility or release approval.
+
+### Usability / 易用性
+
+Summarize whether users can understand the current goal, find the next action, predict the result, participate with low pressure, and recover from represented states. Reuse the relevant profile findings; do not create another deduction.
+
+### Visual Hierarchy / 视觉层级
+
+Summarize focus, primary action, scan order, grouping, density, and competing accents. Use `visual_hierarchy` when present; otherwise cite the closest supported visual-system evidence.
+
+### Consistency / 一致性
+
+Summarize visual-language coherence and design-system behavior. Cover material, form, graphic or illustration style, media, motion character, components, and semantic tokens only where evidence exists.
+
+### Accessibility / 无障碍性
+
+Summarize contrast, text legibility, touch targets, color dependence, focus, scaling, and reduced-motion risks. Separate measured violations from visual estimates. Never claim full compliance from screenshots alone.
+
+### What Works Well / 做得好的地方
+
+Render evidence-backed strengths. Prefer strengths that support the design goal, brand, usability, or system coherence. Do not invent praise.
+
+### Priority Recommendations / 优先改进建议
+
+Select at most three root-cause changes from confirmed findings. Write each as `action → expected design or user outcome → metric or validation method when needed`. This summary does not replace the full finding list.
+
+## Full-audit detail order
+
+After the seven sections, render:
+
+1. `Dimension Coverage & Complement`: every profile dimension, native-expert coverage, gap, Wira complement status, final coverage, and source pass IDs.
+2. `Screen / Section Coverage`: every visible region, its purpose, review status, and related finding IDs.
+3. `Component / Element Audit`: core, repeated, novel, inconsistent, and risky components; group low-risk standard components when appropriate.
+4. `State / Edge-case Audit`: relevant quantities, content boundaries, interaction states, device conditions, loading, empty, error, and recovery behavior.
+5. Detailed finding cards.
+6. Validation hypotheses and evidence limitations.
+7. Dimension score detail and deterministic readiness reasons.
+8. Specialist synthesis.
+9. Capability-pass log.
+
+For detailed cards, preserve ID, severity, status, confidence, delta, evidence level, location, evidence, impact, recommendation, completion criteria, and validation. Tentative findings remain visible but explicitly do not deduct score.
+
+The specialist-synthesis table must precede the capability-pass log. Show which candidate conclusions were adopted, retained for validation, or rejected, with target IDs and rationale. The capability log must make the required host-native baseline visible, distinguish the Wira adaptive complement from the unavailable cross-host expert, and record optional capabilities as used, skipped, or unavailable.
+
+Use `N/A` for unsupported dimensions. Never represent `N/A` as zero.

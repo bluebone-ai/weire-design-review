@@ -10,8 +10,9 @@
 - 单独提交设计稿且未说明目标时，必须先确认设计目标与成功标准，再开始评审
 - 对比新版与线上版本，明确 `better / same / worse / unknown`
 - 从流程、页面、区域、组件、元素与状态六个层级检查设计
-- 覆盖整体印象、易用性、视觉层级、一致性、无障碍性、亮点及优先建议
-- 使用 `F-001` 形式输出“证据—影响—建议—验证”详细问题卡
+- 默认输出设计师简版：当前得分与开发准入、优先改稿清单、需要保留的设计和修改后复审条件
+- 使用 `F-001` 形式输出“位置—具体问题—影响—优化动作—完成标准”的可执行问题卡
+- 完整审计仍保留整体印象、易用性、视觉层级、一致性、无障碍性、亮点、覆盖矩阵、专家结论及能力日志，并在明确要求时展开
 - 针对微热检查品牌调性、颜色感知、视觉语言和设计系统一致性
 - 每次评审强制运行当前宿主的设计专家基线：Codex Product Design `audit` 或 Claude Design `design-critique`
 - 先让当前平台专家完整评审，再通过维度覆盖矩阵自适应补齐本次未充分检查的微热维度
@@ -35,6 +36,12 @@ codex plugin add weire-design-review@bluebone-ai
 使用 $weire-design-review 评审这张微热设计稿。
 ```
 
+默认返回设计师简版。需要完整评分维度、覆盖矩阵和能力调用记录时，可以说：
+
+```text
+使用 $weire-design-review 输出这张设计稿的完整审计报告。
+```
+
 ### Claude Code
 
 ```bash
@@ -48,6 +55,8 @@ claude plugin install weire-design-review@bluebone-ai
 ```text
 /weire-design-review:weire-design-review 评审这张微热设计稿。
 ```
+
+默认同样返回设计师简版；明确要求“完整审计报告”时才展开全部维度与附录。
 
 本地开发时也可以使用 `claude --plugin-dir ./plugins/weire-design-review`。
 
@@ -109,6 +118,13 @@ python3 plugins/weire-design-review/skills/weire-design-review/scripts/review_sc
 ```
 
 报告 JSON 需符合 `plugins/weire-design-review/skills/weire-design-review/references/result-schema.md`。评分仅汇总有证据支持且适用的维度；缺少证据的维度使用 `N/A`，不会被当作零分。
+
+`review.output_mode` 支持两种呈现：
+
+- `designer_summary`：默认。给设计师直接用于改稿和复审。
+- `audit_full`：按需。包含完整证据、维度评分、覆盖矩阵、专家汇总与能力日志。
+
+两种模式共用同一份底层评审 JSON 和确定性评分；简版只减少展示复杂度，不减少检查范围。在支持文件输出的环境中，Plugin 应同时保存简版 Markdown、完整审计 Markdown 和评分 JSON。
 
 ## 发布与更新
 

@@ -1,6 +1,6 @@
 ---
 name: weire-design-review
-description: Evidence-based design review for 微热/Weire/Wira/Laboo mobile product screenshots, screen recordings, production baselines, design systems, exported design files, or Figma links. Use when Codex or Claude is asked to 评审微热设计稿、比较微热新版和线上版、审查首页/房间/社交流程、检查品牌与设计系统、分析交互视频、评价 Figma 页面或生成微热设计评分。 Requires a user-confirmed design goal, runs the current host's full native Product Design or Claude Design critique, then adaptively complements uncovered Wira dimensions before deterministic scoring.
+description: Evidence-based design review for 微热/Weire/Wira/Laboo mobile product screenshots, screen recordings, production baselines, design systems, exported design files, or Figma links. Use when Codex or Claude is asked to 评审微热设计稿、比较微热新版和线上版、审查首页/房间/社交流程、检查品牌与设计系统、分析交互视频、评价 Figma 页面或生成微热设计评分。 Requires a user-confirmed design goal, runs the current host's full native Product Design or Claude Design critique, adaptively complements uncovered Wira dimensions, scores deterministically, and defaults to a concise designer-facing revision report.
 ---
 
 # Weire Design Review
@@ -86,10 +86,12 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
    - Fix validation errors instead of manually inventing a score.
    - Read [development-readiness.md](references/development-readiness.md) and use the generated `development_readiness` gate without overriding its thresholds or severity rules.
 9. Deliver the review.
-   - Lead with verdict, score, confidence, development readiness, and redesign delta when applicable.
+   - Set `review.output_mode` to `designer_summary` unless the user explicitly requests a complete audit, scoring details, coverage tables, expert logs, or archive output; then use `audit_full`.
+   - Lead with verdict, score, development readiness, and redesign delta when applicable. Keep raw confidence metadata in the full audit unless it changes the readiness decision.
    - Render accepted evidence inline when possible.
-   - Render the seven fixed report sections and appendix in [report-template.md](references/report-template.md).
-   - Save evidence, scored JSON, and a Markdown report when the environment supports files.
+   - For `designer_summary`, render only the four designer-facing sections in [report-template.md](references/report-template.md): review result, revision tasks, preserve list, and re-review checklist.
+   - For `audit_full`, render the seven audit sections, coverage tables, detailed evidence cards, scoring detail, specialist synthesis, and capability log defined in the same template.
+   - Always preserve the complete structured review in scored JSON. When the environment supports files, save evidence, scored JSON, a concise designer report, and a full Markdown audit; do not discard audit detail merely because the visible response is concise.
 
 ## Source boundaries
 
@@ -112,24 +114,23 @@ Never translate stakeholder words such as `脏`, `土`, `暧昧`, or `下沉` di
 
 ## Required output surface
 
-Use these fixed user-facing sections in order:
+Default to `designer_summary`. Use these user-facing sections in order:
 
-1. Overall Impression / 整体印象
-2. Usability / 易用性
-3. Visual Hierarchy / 视觉层级
-4. Consistency / 一致性
-5. Accessibility / 无障碍性
-6. What Works Well / 做得好的地方
-7. Priority Recommendations / 优先改进建议
+1. Review Result / 评审结果
+2. Revision Tasks / 优先改稿清单
+3. Preserve / 本轮需要保留
+4. Re-review Checklist / 修改后复审条件
 
-Follow them with the evidence and scoring appendix defined in [report-template.md](references/report-template.md). Keep detailed profile dimensions underneath this presentation layer and never deduct twice when a finding appears in a roll-up section.
+The first section must show the total score, development-readiness conclusion, 85-point normal development line, confirmed goal, score/severity reason, and immediate next action. Clarify that this is design readiness, not technical feasibility or release approval.
 
-Inside `Overall Impression`, always render the scored `Development Readiness / 开发准入` callout. State the 85-point normal development line, any score or severity override, evidence sufficiency, and the required next action.
+Render every confirmed finding as a compact numbered task card ordered by severity, core-task impact, and dependency. Each card must visibly separate location, concrete problem, why it matters, optimization action, and completion criteria. Preserve the stable `F-001` ID. Put tentative findings under `待验证`; never mix them into the must-fix list or let them reduce the score.
 
-After the seven summary sections, render every finding as a numbered detail card with severity, status, confidence, delta, evidence, impact, recommendation, and validation. Do not replace these cards with a one-line issue list.
+Render at most three evidence-backed strengths in `Preserve`. If none are supported, state that no preserve item is confirmed instead of inventing praise.
 
-Before the finding cards, render dimension coverage/adaptive complement, screen/section coverage, component/element audit, and relevant state/edge-case tables. Apply these to every scene, not only repeated cards or collections.
+Build the re-review checklist from all blocker and major findings plus the highest-impact moderate findings. It must include the deterministic pass condition: score at least 85, no scored blocker or major finding, and sufficient evidence confidence.
 
-In the appendix, render the specialist synthesis before the capability-pass log. Show what each used specialist contributed, where it entered the report, and why a candidate was retained or rejected. Then render the capability-pass log so readers can confirm the host-native baseline actually ran, distinguish the core review from additional specialist contributions, and see which cross-host or optional capabilities were unavailable or deliberately skipped.
+Do not print dimension score tables, coverage matrices, capability logs, specialist synthesis, raw confidence/delta/evidence-level metadata, or the seven audit roll-up sections in the default response. These remain mandatory in the structured review and saved full audit. Show a concise artifact link or path when a full audit file was saved.
+
+Use `audit_full` only when explicitly requested. It contains the seven audit sections—Overall Impression, Usability, Visual Hierarchy, Consistency, Accessibility, What Works Well, and Priority Recommendations—followed by dimension and multi-scale coverage, detailed findings, validation hypotheses, limitations, scoring, specialist synthesis, and the capability-pass log. Never deduct twice when the same finding appears in a roll-up section.
 
 Use `N/A` for unsupported dimensions. Never represent `N/A` as zero.

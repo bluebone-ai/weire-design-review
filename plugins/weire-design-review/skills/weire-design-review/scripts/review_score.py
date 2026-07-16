@@ -51,6 +51,7 @@ DEDUCTIONS = {"blocker": 100, "major": 40, "moderate": 15, "minor": 5}
 STATUSES = {"confirmed", "tentative"}
 SOURCE_TYPES = {"screenshot", "video", "figma", "mixed"}
 REVIEW_MODES = {"artifact", "redesign-comparison", "flow-audit", "direction-comparison"}
+OUTPUT_MODES = {"designer_summary", "audit_full"}
 EXECUTION_HOSTS = {"codex", "claude", "other"}
 REVIEW_ENGINES = {
     "codex": "wira-core+codex-product-design",
@@ -137,6 +138,8 @@ def validate_review(data: Any) -> dict[str, Any]:
     profile_name, weights = get_profile(review)
     mode = review.get("mode", "artifact")
     require(mode in REVIEW_MODES, f"review.mode must be one of {sorted(REVIEW_MODES)}")
+    output_mode = review.get("output_mode")
+    require(output_mode in OUTPUT_MODES, f"review.output_mode must be one of {sorted(OUTPUT_MODES)}")
     execution_host = review.get("execution_host")
     require(execution_host in EXECUTION_HOSTS, f"review.execution_host must be one of {sorted(EXECUTION_HOSTS)}")
     if execution_host in REVIEW_ENGINES:
@@ -418,8 +421,13 @@ def validate_review(data: Any) -> dict[str, Any]:
         confidence = finding.get("confidence")
         require(isinstance(confidence, (int, float)) and not isinstance(confidence, bool), f"{prefix}.confidence must be numeric")
         require(0 <= confidence <= 1, f"{prefix}.confidence must be between 0 and 1")
-        for field in ("title", "impact", "recommendation"):
+        for field in ("title", "location", "impact", "recommendation"):
             validate_text(finding.get(field), f"{prefix}.{field}")
+        validate_text_list(
+            finding.get("completion_criteria"),
+            f"{prefix}.completion_criteria",
+            allow_empty=False,
+        )
         evidence = finding.get("evidence")
         require(isinstance(evidence, dict), f"{prefix}.evidence must be an object")
         validate_text(evidence.get("screen_id"), f"{prefix}.evidence.screen_id")
@@ -656,7 +664,7 @@ def score_review(data: dict[str, Any]) -> dict[str, Any]:
         "score_confidence": rounded_confidence,
         "dimension_scores": dimension_scores,
         "scoring_profile": profile_name,
-        "scoring_version": "1.9",
+        "scoring_version": "1.10",
         "development_readiness": get_development_readiness(
             rounded_overall,
             rounded_confidence,

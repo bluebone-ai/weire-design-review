@@ -52,6 +52,7 @@ def make_validated_review(execution_host: str = "codex") -> dict:
             "source_type": "screenshot",
             "platform": "ios",
             "core_task": "Find the primary action",
+            "output_mode": "designer_summary",
         }
     )
     payload["scope"]["limitations"] = ["Static screenshot only"]
@@ -117,6 +118,30 @@ def make_validated_review(execution_host: str = "codex") -> dict:
     return payload
 
 
+def validated_finding() -> dict:
+    return {
+        "id": "F-001",
+        "dimension": "usability",
+        "severity": "moderate",
+        "status": "confirmed",
+        "confidence": 0.9,
+        "check_type": "semantic",
+        "source_pass_ids": ["core"],
+        "delta": "unknown",
+        "title": "The primary action is difficult to identify",
+        "location": "Home / first viewport / primary action area",
+        "evidence": {
+            "screen_id": "SCREEN-01",
+            "description": "Three actions use equal visual weight",
+        },
+        "impact": "Users may hesitate before starting the core task",
+        "recommendation": "Give the primary action stronger hierarchy and demote the alternatives",
+        "completion_criteria": [
+            "The primary action is the first choice in a five-second first-click test",
+        ],
+    }
+
+
 class DevelopmentReadinessTests(unittest.TestCase):
     def test_85_is_normal_development_line(self) -> None:
         findings = [finding(dimension, "moderate") for dimension in SCORER.PROFILES["generic-mobile-v1"]]
@@ -169,7 +194,7 @@ class DevelopmentReadinessTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             scored = json.loads(review_path.read_text(encoding="utf-8"))
-        self.assertEqual(scored["scores"]["scoring_version"], "1.9")
+        self.assertEqual(scored["scores"]["scoring_version"], "1.10")
         self.assertEqual(scored["scores"]["development_readiness"]["status"], "ready_for_development")
 
 
@@ -300,6 +325,52 @@ class DesignGoalGateTests(unittest.TestCase):
         payload = make_validated_review("claude")
         payload["context"]["design_goal"]["source"] = "model_inferred"
         with self.assertRaisesRegex(SCORER.ReviewValidationError, "design_goal.source"):
+            SCORER.validate_review(payload)
+
+
+class ReportModeTests(unittest.TestCase):
+    def test_designer_summary_is_valid(self) -> None:
+        payload = make_validated_review("codex")
+        SCORER.validate_review(payload)
+
+    def test_full_audit_is_valid(self) -> None:
+        payload = make_validated_review("claude")
+        payload["review"]["output_mode"] = "audit_full"
+        SCORER.validate_review(payload)
+
+    def test_output_mode_is_required(self) -> None:
+        payload = make_validated_review("codex")
+        payload["review"].pop("output_mode")
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "review.output_mode"):
+            SCORER.validate_review(payload)
+
+    def test_invalid_output_mode_is_rejected(self) -> None:
+        payload = make_validated_review("codex")
+        payload["review"]["output_mode"] = "verbose"
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "review.output_mode"):
+            SCORER.validate_review(payload)
+
+
+class DesignerFindingCardTests(unittest.TestCase):
+    def test_location_and_completion_criteria_are_accepted(self) -> None:
+        payload = make_validated_review("codex")
+        payload["findings"] = [validated_finding()]
+        SCORER.validate_review(payload)
+
+    def test_location_is_required(self) -> None:
+        payload = make_validated_review("codex")
+        item = validated_finding()
+        item.pop("location")
+        payload["findings"] = [item]
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "findings\[0\].location"):
+            SCORER.validate_review(payload)
+
+    def test_completion_criteria_are_required(self) -> None:
+        payload = make_validated_review("codex")
+        item = validated_finding()
+        item["completion_criteria"] = []
+        payload["findings"] = [item]
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "completion_criteria must not be empty"):
             SCORER.validate_review(payload)
 
 if __name__ == "__main__":
