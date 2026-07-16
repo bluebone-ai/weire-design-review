@@ -22,6 +22,8 @@ Review every artifact from the whole experience down to visible details. Card la
 
 ## Component and element checks
 
+Run the structured ledger in [element-accountability-audit.md](element-accountability-audit.md) before summarizing component findings. The coverage table proves that regions were scanned; the ledger proves that semantically loaded micro-elements were not skipped.
+
 For important components, record:
 
 - stable ID or visible label;
@@ -71,6 +73,7 @@ Before detailed finding cards, render:
 
 1. `Screen / Section Coverage` for every visible region;
 2. `Component / Element Audit` for core, repeated, novel, inconsistent, and risky components;
-3. `State / Edge-case Audit` using the relevant scene family above.
+3. `Element Accountability Ledger` for semantic badges, tags, counters, indicators, prompts, icons, graphics, and microcopy;
+4. `State / Edge-case Audit` using the relevant scene family above.
 
 Convert supported details into normal finding cards. Keep missing states tentative and non-scoring unless the supplied design claims complete coverage.

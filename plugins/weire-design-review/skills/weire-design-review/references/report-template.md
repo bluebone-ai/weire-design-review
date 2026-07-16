@@ -194,16 +194,17 @@ After the seven sections, render:
 1. `Dimension Coverage & Complement`: every profile dimension, native-expert coverage, gap, Wira complement status, final coverage, and source pass IDs.
 2. `Screen / Section Coverage`: every visible region, its purpose, review status, and related finding IDs.
 3. `Component / Element Audit`: core, repeated, novel, inconsistent, and risky components; group low-risk standard components when appropriate.
-4. `State / Edge-case Audit`: relevant quantities, content boundaries, interaction states, device conditions, loading, empty, error, and recovery behavior.
-5. Detailed finding cards.
-6. Validation hypotheses and evidence limitations.
-7. Dimension score detail and deterministic readiness reasons.
-8. Frozen native-expert snapshot and its full candidate list.
-9. Specialist synthesis, including the final disposition of every native candidate.
-10. Capability-pass log.
+4. `Element Accountability Ledger`: every semantic micro-element, its role, necessity, deletion effect, lifecycle evidence, assessment, and target ID.
+5. `State / Edge-case Audit`: relevant quantities, content boundaries, interaction states, device conditions, loading, empty, error, and recovery behavior.
+6. Detailed finding cards.
+7. Validation hypotheses and evidence limitations.
+8. Dimension score detail and deterministic readiness reasons.
+9. Frozen native-expert snapshot and its full candidate list.
+10. Specialist synthesis, including the final disposition of every native candidate.
+11. Capability-pass log.
 
 For detailed cards, preserve ID, severity, status, confidence, delta, evidence level, location, evidence, impact, recommendation, completion criteria, and validation. Tentative findings remain visible but explicitly do not deduct score.
 
-The frozen native snapshot must precede specialist synthesis. Show its execution mode, preserved artifact reference, five native framework conclusions, and complete `NC-xxx` candidate list. The specialist-synthesis table must map every native candidate exactly once before the capability-pass log. Show which conclusions were adopted, retained for validation, or rejected, with target IDs and rationale. The capability log must make the required host-native baseline visible, distinguish the Wira adaptive complement from the unavailable cross-host expert, and record optional capabilities as used, skipped, or unavailable.
+The element ledger must not appear in the default designer summary; only its mapped confirmed and tentative issues belong there. In the full audit, show every `E-xxx` item and do not group novel, stateful, promotional, inconsistent, or core-task elements. The frozen native snapshot must precede specialist synthesis. Show its execution mode, preserved artifact reference, five native framework conclusions, and complete `NC-xxx` candidate list. The specialist-synthesis table must map every native candidate exactly once before the capability-pass log. Show which conclusions were adopted, retained for validation, or rejected, with target IDs and rationale. The capability log must make the required host-native baseline visible, distinguish the Wira adaptive complement from the unavailable cross-host expert, and record optional capabilities as used, skipped, or unavailable.
 
 Use `N/A` for unsupported dimensions. Never represent `N/A` as zero.

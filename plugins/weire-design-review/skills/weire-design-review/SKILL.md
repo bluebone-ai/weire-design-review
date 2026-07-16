@@ -67,6 +67,8 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
    - Run contextual checks: confirmed brand alignment, design-system fit, baseline delta, and intended product behavior.
    - Run [visual-language-consistency.md](references/visual-language-consistency.md) when reviewing a redesign, style refresh, design-system change, or cross-screen experience.
    - Run [multi-scale-audit.md](references/multi-scale-audit.md) for every artifact. Review flow, screen, region, component, element/property, and state/boundary levels; record every visible region in the coverage table.
+   - Read and run [element-accountability-audit.md](references/element-accountability-audit.md) for every artifact. Inventory every semantically loaded badge, tag, counter, indicator, prompt, icon, graphic, and microcopy; record necessity, deletion effect, and lifecycle evidence in `element_accountability` before consolidation.
+   - Treat a state-like element seen only in a static screenshot as `validation_required` when its lifecycle is unknown. Confirm a missing lifecycle only from stronger inspected evidence such as Figma, PRD, design-system rules, video, or implementation.
    - Run the mandatory color-perception pass in [color-perception-audit.md](references/color-perception-audit.md) whenever the task evaluates visual style, palette, brand direction, or a redesign.
    - Follow [review-framework.md](references/review-framework.md). Record strengths as well as problems.
    - Read [adaptive-dimension-complement.md](references/adaptive-dimension-complement.md) completely. Mark native coverage for every applicable profile dimension; supplement only `partial` or `missing` dimensions with one `wira-core / adaptive-dimension-complement` pass.
@@ -82,6 +84,7 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
    - Merge repeated symptoms caused by one root issue and keep one primary dimension per finding.
    - Consolidate the native expert and Wira complement together. A verified native-only or complement-only conclusion remains eligible for the final report and score; agreement never creates a second deduction.
    - Map every native candidate exactly once through `specialist_synthesis.source_candidate_ids`. Use `adopted`, `retained_for_validation`, or `not_adopted` with an explicit rationale. Stop before scoring if any native candidate is unmapped or mapped more than once.
+   - Map every element-accountability item assessed as `finding` or `validation_required` to exactly one final finding or validation hypothesis. Stop before scoring if the element scan is incomplete, a semantic micro-element has no accountability decision, or a static screenshot is used to confirm an unshown lifecycle failure.
    - Avoid fabricated measurements. State `visually estimated` when no measurement tool was used.
    - For redesigns, mark every finding or strength `better`, `same`, `worse`, or `unknown` relative to the matched baseline when the schema supports it.
 8. Score deterministically.

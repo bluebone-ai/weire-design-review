@@ -115,6 +115,42 @@ def make_validated_review(execution_host: str = "codex") -> dict:
         },
         "candidates": [],
     }
+    payload["element_accountability"] = {
+        "scan_completed": True,
+        "input_sources": ["SCREEN-01"],
+        "categories_checked": sorted(SCORER.ELEMENT_SCAN_CATEGORIES),
+        "items": [
+            {
+                "id": "E-001",
+                "source_id": "SCREEN-01",
+                "screen_id": "SCREEN-01",
+                "location": "Home / first viewport / primary action label",
+                "element_type": "microcopy",
+                "visible_content": "Start",
+                "semantic_role": "action",
+                "decision_value": "Identifies the primary action",
+                "necessity": "necessary",
+                "deletion_test": {
+                    "result": "essential",
+                    "rationale": "Removing the label would make the action unidentified",
+                },
+                "interaction": "The label belongs to the tappable primary action",
+                "design_system_rule": "Uses the standard primary-action label role",
+                "lifecycle": {
+                    "requirement": "not_required",
+                    "evidence_status": "not_applicable",
+                    "appearance_trigger": "not_applicable",
+                    "update_rule": "not_applicable",
+                    "exit_rule": "not_applicable",
+                    "recurrence_rule": "not_applicable",
+                    "default_state": "not_applicable",
+                },
+                "verification_basis": ["visible_static", "design_system"],
+                "assessment": "no_issue",
+                "issue_basis": "none",
+            }
+        ],
+    }
     payload["scope"]["dimension_coverage"] = {
         dimension: {
             "native_status": "full",
@@ -214,7 +250,7 @@ class DevelopmentReadinessTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             scored = json.loads(review_path.read_text(encoding="utf-8"))
-        self.assertEqual(scored["scores"]["scoring_version"], "1.12")
+        self.assertEqual(scored["scores"]["scoring_version"], "1.13")
         self.assertEqual(scored["scores"]["development_readiness"]["status"], "ready_for_development")
 
 
@@ -328,6 +364,140 @@ class NativeExpertSnapshotTests(unittest.TestCase):
             }
         )
         with self.assertRaisesRegex(SCORER.ReviewValidationError, "must not have multiple"):
+            SCORER.validate_review(payload)
+
+
+class ElementAccountabilityTests(unittest.TestCase):
+    @staticmethod
+    def set_new_badge_item(payload: dict, *, confirmed: bool) -> None:
+        item = payload["element_accountability"]["items"][0]
+        item.update(
+            {
+                "location": "Home / masquerade card / title-right badge",
+                "element_type": "badge_tag",
+                "visible_content": "上新",
+                "semantic_role": "status",
+                "decision_value": "May indicate an unseen or recently released gameplay entry",
+                "interaction": "No independent interaction is visible",
+                "design_system_rule": "No inspected badge rule was supplied",
+                "issue_basis": "lifecycle",
+            }
+        )
+        item["lifecycle"] = {
+            "requirement": "required",
+            "evidence_status": "missing" if confirmed else "unsupported",
+            "appearance_trigger": "unknown",
+            "update_rule": "unknown",
+            "exit_rule": "unknown",
+            "recurrence_rule": "unknown",
+            "default_state": "unknown",
+        }
+        lifecycle_finding = validated_finding()
+        lifecycle_finding.update(
+            {
+                "dimension": "state_coverage",
+                "title": "The new badge has no defined lifecycle",
+                "location": "Home / masquerade card / title-right badge",
+                "evidence": {
+                    "screen_id": "SCREEN-01",
+                    "description": "The 上新 badge is visible beside the gameplay title",
+                },
+                "impact": "The state may remain stale or force engineering to invent behavior",
+                "recommendation": "Define appearance, update, exit, recurrence, and default-card rules",
+                "completion_criteria": ["Figma or PRD defines the complete badge lifecycle"],
+                "status": "confirmed" if confirmed else "tentative",
+            }
+        )
+        payload["findings"] = [lifecycle_finding]
+        item["necessity"] = "necessary" if confirmed else "unknown"
+        item["deletion_test"] = {
+            "result": "essential" if confirmed else "unknown",
+            "rationale": (
+                "The inspected product rule treats the badge as user-specific state"
+                if confirmed
+                else "The screenshot cannot show whether removing it loses user-specific state"
+            ),
+        }
+        item["verification_basis"] = ["visible_static", "figma", "prd"] if confirmed else ["visible_static"]
+        item["assessment"] = "finding" if confirmed else "validation_required"
+        item["target_ref"] = {"type": "finding", "id": "F-001"}
+
+    def test_element_accountability_is_required(self) -> None:
+        payload = make_validated_review("codex")
+        payload.pop("element_accountability")
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "element_accountability must be an object"):
+            SCORER.validate_review(payload)
+
+    def test_all_micro_element_categories_are_required(self) -> None:
+        payload = make_validated_review("claude")
+        payload["element_accountability"]["categories_checked"].remove("badge_tag")
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "exactly the required micro-element categories"):
+            SCORER.validate_review(payload)
+
+    def test_every_accepted_source_requires_an_element_row(self) -> None:
+        payload = make_validated_review("codex")
+        payload["capability_passes"][0]["input_sources"].append("SCREEN-02")
+        payload["native_expert_snapshot"]["input_sources"].append("SCREEN-02")
+        payload["element_accountability"]["input_sources"].append("SCREEN-02")
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "inspect every accepted input source"):
+            SCORER.validate_review(payload)
+
+    def test_static_new_badge_lifecycle_stays_tentative(self) -> None:
+        payload = make_validated_review("claude")
+        self.set_new_badge_item(payload, confirmed=False)
+        SCORER.validate_review(payload)
+
+    def test_static_only_evidence_cannot_confirm_missing_lifecycle(self) -> None:
+        payload = make_validated_review("codex")
+        self.set_new_badge_item(payload, confirmed=True)
+        payload["element_accountability"]["items"][0]["verification_basis"] = ["visible_static"]
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "confirmed lifecycle finding requires"):
+            SCORER.validate_review(payload)
+
+    def test_figma_and_prd_can_confirm_missing_lifecycle(self) -> None:
+        payload = make_validated_review("claude")
+        self.set_new_badge_item(payload, confirmed=True)
+        SCORER.validate_review(payload)
+
+    def test_visible_status_element_makes_state_coverage_applicable(self) -> None:
+        payload = make_validated_review("codex")
+        self.set_new_badge_item(payload, confirmed=False)
+        payload["scope"]["dimensions"]["state_coverage"] = {
+            "applicable": False,
+            "evidence_confidence": 0,
+        }
+        payload["scope"]["dimension_coverage"]["state_coverage"] = {
+            "native_status": "unsupported",
+            "final_status": "unsupported",
+            "complement_status": "not_applicable",
+            "source_pass_ids": [],
+        }
+        payload["findings"] = []
+        payload["element_accountability"]["items"][0]["target_ref"] = {
+            "type": "validation_hypothesis",
+            "id": "H-001",
+        }
+        payload["validation_hypotheses"] = [
+            {
+                "id": "H-001",
+                "hypothesis": "The visible status badge needs an explicit lifecycle contract",
+                "primary_metric": "state_contract_completeness",
+                "guardrails": [],
+                "source_pass_ids": ["core"],
+            }
+        ]
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "state_coverage must be applicable"):
+            SCORER.validate_review(payload)
+
+    def test_redundant_element_cannot_be_closed_as_no_issue(self) -> None:
+        payload = make_validated_review("codex")
+        item = payload["element_accountability"]["items"][0]
+        item["necessity"] = "redundant"
+        item["deletion_test"] = {
+            "result": "no_material_loss",
+            "rationale": "Removing the element changes no information or action",
+        }
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "cannot be closed as no_issue"):
             SCORER.validate_review(payload)
 
 

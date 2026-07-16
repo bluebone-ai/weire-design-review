@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -117,6 +118,56 @@ NATIVE_FRAMEWORK_STATUSES = {
     "unsupported",
 }
 NATIVE_CANDIDATE_KINDS = {"finding", "strength", "validation_hypothesis"}
+ELEMENT_SCAN_CATEGORIES = {
+    "badge_tag",
+    "counter_timer",
+    "status_indicator",
+    "pagination_indicator",
+    "transient_prompt",
+    "icon_graphic",
+    "microcopy",
+}
+ELEMENT_TYPES = ELEMENT_SCAN_CATEGORIES | {"other"}
+ELEMENT_SEMANTIC_ROLES = {
+    "status",
+    "promotion",
+    "action",
+    "navigation",
+    "feedback",
+    "content",
+    "decoration",
+    "unknown",
+}
+ELEMENT_NECESSITY_VALUES = {"necessary", "supportive", "redundant", "unknown"}
+ELEMENT_DELETION_RESULTS = {"essential", "supportive", "no_material_loss", "unknown"}
+ELEMENT_NECESSITY_TO_DELETION = {
+    "necessary": "essential",
+    "supportive": "supportive",
+    "redundant": "no_material_loss",
+    "unknown": "unknown",
+}
+ELEMENT_LIFECYCLE_REQUIREMENTS = {"required", "not_required", "unknown"}
+ELEMENT_LIFECYCLE_EVIDENCE = {"complete", "partial", "missing", "unsupported", "not_applicable"}
+ELEMENT_LIFECYCLE_FIELDS = (
+    "appearance_trigger",
+    "update_rule",
+    "exit_rule",
+    "recurrence_rule",
+    "default_state",
+)
+ELEMENT_ASSESSMENTS = {"no_issue", "finding", "validation_required"}
+ELEMENT_ISSUE_BASES = {"none", "necessity", "lifecycle", "semantics", "affordance", "system_consistency"}
+ELEMENT_EVIDENCE_BASES = {
+    "visible_static",
+    "video",
+    "figma",
+    "prd",
+    "design_system",
+    "implementation",
+    "analytics",
+}
+STRONG_LIFECYCLE_EVIDENCE = {"video", "figma", "prd", "design_system", "implementation"}
+ELEMENT_TARGET_TYPES = {"finding", "validation_hypothesis"}
 
 
 class ReviewValidationError(ValueError):
@@ -570,6 +621,175 @@ def validate_review(data: Any) -> dict[str, Any]:
         if "source_pass_ids" in hypothesis:
             validate_source_pass_ids(hypothesis["source_pass_ids"], f"{prefix}.source_pass_ids")
 
+    element_accountability = data.get("element_accountability")
+    require(isinstance(element_accountability, dict), "element_accountability must be an object")
+    require(
+        element_accountability.get("scan_completed") is True,
+        "element_accountability.scan_completed must be true",
+    )
+    element_input_sources = element_accountability.get("input_sources")
+    validate_text_list(element_input_sources, "element_accountability.input_sources", allow_empty=False)
+    require(
+        len(element_input_sources) == len(set(element_input_sources)),
+        "element_accountability.input_sources must not contain duplicates",
+    )
+    require(
+        set(element_input_sources) == set(snapshot_input_sources),
+        "element_accountability.input_sources must match the accepted native snapshot inputs",
+    )
+    categories_checked = element_accountability.get("categories_checked")
+    validate_text_list(categories_checked, "element_accountability.categories_checked", allow_empty=False)
+    require(
+        set(categories_checked) == ELEMENT_SCAN_CATEGORIES,
+        "element_accountability.categories_checked must contain exactly the required micro-element categories",
+    )
+    require(
+        len(categories_checked) == len(set(categories_checked)),
+        "element_accountability.categories_checked must not contain duplicates",
+    )
+    element_items = element_accountability.get("items")
+    require(isinstance(element_items, list) and element_items, "element_accountability.items must be a non-empty array")
+    element_ids: set[str] = set()
+    covered_element_sources: set[str] = set()
+    has_stateful_element = False
+    for index, item in enumerate(element_items):
+        prefix = f"element_accountability.items[{index}]"
+        require(isinstance(item, dict), f"{prefix} must be an object")
+        element_id = item.get("id")
+        validate_text(element_id, f"{prefix}.id")
+        require(re.fullmatch(r"E-\d{3,}", element_id) is not None, f"{prefix}.id must use E-xxx format")
+        require(element_id not in element_ids, f"duplicate element accountability id: {element_id}")
+        element_ids.add(element_id)
+        source_id = item.get("source_id")
+        validate_text(source_id, f"{prefix}.source_id")
+        require(source_id in element_input_sources, f"{prefix}.source_id references unknown input source {source_id}")
+        covered_element_sources.add(source_id)
+        for field in ("screen_id", "location", "visible_content", "decision_value", "interaction", "design_system_rule"):
+            validate_text(item.get(field), f"{prefix}.{field}")
+        require(item.get("element_type") in ELEMENT_TYPES, f"{prefix}.element_type is invalid")
+        semantic_role = item.get("semantic_role")
+        require(semantic_role in ELEMENT_SEMANTIC_ROLES, f"{prefix}.semantic_role is invalid")
+
+        necessity = item.get("necessity")
+        require(necessity in ELEMENT_NECESSITY_VALUES, f"{prefix}.necessity is invalid")
+        deletion_test = item.get("deletion_test")
+        require(isinstance(deletion_test, dict), f"{prefix}.deletion_test must be an object")
+        deletion_result = deletion_test.get("result")
+        require(deletion_result in ELEMENT_DELETION_RESULTS, f"{prefix}.deletion_test.result is invalid")
+        require(
+            deletion_result == ELEMENT_NECESSITY_TO_DELETION[necessity],
+            f"{prefix}.deletion_test.result must match necessity",
+        )
+        validate_text(deletion_test.get("rationale"), f"{prefix}.deletion_test.rationale")
+
+        lifecycle = item.get("lifecycle")
+        require(isinstance(lifecycle, dict), f"{prefix}.lifecycle must be an object")
+        lifecycle_requirement = lifecycle.get("requirement")
+        lifecycle_status = lifecycle.get("evidence_status")
+        require(
+            lifecycle_requirement in ELEMENT_LIFECYCLE_REQUIREMENTS,
+            f"{prefix}.lifecycle.requirement is invalid",
+        )
+        require(lifecycle_status in ELEMENT_LIFECYCLE_EVIDENCE, f"{prefix}.lifecycle.evidence_status is invalid")
+        if semantic_role == "status":
+            require(
+                lifecycle_requirement != "not_required",
+                f"{prefix} status role must define or validate a lifecycle",
+            )
+        if semantic_role == "status" or lifecycle_requirement in {"required", "unknown"}:
+            has_stateful_element = True
+        lifecycle_values: dict[str, str] = {}
+        for field in ELEMENT_LIFECYCLE_FIELDS:
+            value = lifecycle.get(field)
+            validate_text(value, f"{prefix}.lifecycle.{field}")
+            lifecycle_values[field] = value.strip().lower()
+        if lifecycle_requirement == "not_required":
+            require(
+                lifecycle_status == "not_applicable",
+                f"{prefix}.lifecycle.evidence_status must be not_applicable when lifecycle is not required",
+            )
+        else:
+            require(
+                lifecycle_status != "not_applicable",
+                f"{prefix}.lifecycle.evidence_status cannot be not_applicable when lifecycle may be required",
+            )
+        if lifecycle_status == "complete":
+            require(
+                all(value != "unknown" for value in lifecycle_values.values()),
+                f"{prefix}.lifecycle complete status requires all lifecycle rules",
+            )
+
+        verification_basis = item.get("verification_basis")
+        validate_text_list(verification_basis, f"{prefix}.verification_basis", allow_empty=False)
+        require(
+            len(verification_basis) == len(set(verification_basis)),
+            f"{prefix}.verification_basis must not contain duplicates",
+        )
+        require(
+            set(verification_basis) <= ELEMENT_EVIDENCE_BASES,
+            f"{prefix}.verification_basis contains an invalid value",
+        )
+        assessment = item.get("assessment")
+        issue_basis = item.get("issue_basis")
+        require(assessment in ELEMENT_ASSESSMENTS, f"{prefix}.assessment is invalid")
+        require(issue_basis in ELEMENT_ISSUE_BASES, f"{prefix}.issue_basis is invalid")
+        if assessment == "no_issue":
+            require(issue_basis == "none", f"{prefix}.issue_basis must be none when assessment is no_issue")
+            require("target_ref" not in item, f"{prefix}.target_ref is invalid when assessment is no_issue")
+        else:
+            require(issue_basis != "none", f"{prefix}.issue_basis must identify the concern")
+            target_ref = item.get("target_ref")
+            require(isinstance(target_ref, dict), f"{prefix}.target_ref must be an object")
+            target_type = target_ref.get("type")
+            target_id = target_ref.get("id")
+            require(target_type in ELEMENT_TARGET_TYPES, f"{prefix}.target_ref.type is invalid")
+            validate_text(target_id, f"{prefix}.target_ref.id")
+            if assessment == "finding":
+                require(target_type == "finding", f"{prefix}.finding assessment must target a finding")
+                require(target_id in findings_by_id, f"{prefix}.target_ref references unknown finding {target_id}")
+                require(
+                    findings_by_id[target_id].get("status") == "confirmed",
+                    f"{prefix}.finding assessment must target a confirmed finding",
+                )
+            elif target_type == "finding":
+                require(target_id in findings_by_id, f"{prefix}.target_ref references unknown finding {target_id}")
+                require(
+                    findings_by_id[target_id].get("status") == "tentative",
+                    f"{prefix}.validation_required finding target must be tentative",
+                )
+            else:
+                require(
+                    target_id in hypotheses_by_id,
+                    f"{prefix}.target_ref references unknown validation hypothesis {target_id}",
+                )
+
+        if necessity in {"redundant", "unknown"} or deletion_result in {"no_material_loss", "unknown"}:
+            require(assessment != "no_issue", f"{prefix} unresolved or redundant necessity cannot be closed as no_issue")
+        if lifecycle_requirement == "unknown":
+            require(assessment == "validation_required", f"{prefix} unknown lifecycle requirement must be validated")
+        if lifecycle_requirement == "required" and lifecycle_status in {"partial", "missing", "unsupported"}:
+            require(assessment != "no_issue", f"{prefix} incomplete required lifecycle cannot be closed as no_issue")
+        if issue_basis == "lifecycle" and assessment == "finding":
+            require(
+                lifecycle_status != "unsupported",
+                f"{prefix} unsupported lifecycle evidence cannot produce a confirmed finding",
+            )
+            require(
+                bool(set(verification_basis) & STRONG_LIFECYCLE_EVIDENCE),
+                f"{prefix} confirmed lifecycle finding requires Figma, PRD, design-system, video, or implementation evidence",
+            )
+
+    missing_element_sources = sorted(set(element_input_sources) - covered_element_sources)
+    require(
+        not missing_element_sources,
+        f"element_accountability must inspect every accepted input source: {missing_element_sources}",
+    )
+    if has_stateful_element:
+        require(
+            dimensions["state_coverage"]["applicable"] is True,
+            "scope.dimensions.state_coverage must be applicable when a visible element implies state",
+        )
+
     specialist_synthesis = data.get("specialist_synthesis", [])
     require(isinstance(specialist_synthesis, list), "specialist_synthesis must be an array")
     synthesis_ids: set[str] = set()
@@ -813,7 +1033,7 @@ def score_review(data: dict[str, Any]) -> dict[str, Any]:
         "score_confidence": rounded_confidence,
         "dimension_scores": dimension_scores,
         "scoring_profile": profile_name,
-        "scoring_version": "1.12",
+        "scoring_version": "1.13",
         "development_readiness": get_development_readiness(
             rounded_overall,
             rounded_confidence,

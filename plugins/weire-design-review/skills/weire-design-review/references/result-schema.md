@@ -9,6 +9,7 @@
 - Scope dimensions
 - Findings and deltas
 - Validation hypotheses
+- Element accountability
 - Scoring output
 - Report rendering
 
@@ -112,7 +113,7 @@ Record both mandatory baseline capabilities on every review. The array is requir
       "purposes": ["candidate_findings", "specialist_review"],
       "input_kinds": ["static_screenshot"],
       "input_sources": ["candidate-home-static"],
-      "coverage_dimensions": ["color_expression", "brand_alignment"],
+      "coverage_dimensions": ["color_expression", "brand_alignment", "state_coverage"],
       "limitations": ["Static evidence cannot confirm interaction or unshown states"]
     },
     {
@@ -319,7 +320,7 @@ Include exactly the dimensions belonging to the selected profile. Every dimensio
       "brand_alignment": {"applicable": true, "evidence_confidence": 0.55},
       "content_tone": {"applicable": true, "evidence_confidence": 0.8},
       "accessibility": {"applicable": true, "evidence_confidence": 0.65},
-      "state_coverage": {"applicable": false, "evidence_confidence": 0},
+      "state_coverage": {"applicable": true, "evidence_confidence": 0.45},
       "interaction_motion": {"applicable": false, "evidence_confidence": 0}
     },
     "dimension_coverage": {
@@ -346,7 +347,14 @@ Include exactly the dimensions belonging to the selected profile. Every dimensio
       },
       "content_tone": {"native_status": "full", "final_status": "full", "complement_status": "not_needed", "source_pass_ids": ["P-01"]},
       "accessibility": {"native_status": "full", "final_status": "full", "complement_status": "not_needed", "source_pass_ids": ["P-01"]},
-      "state_coverage": {"native_status": "unsupported", "final_status": "unsupported", "complement_status": "not_applicable", "source_pass_ids": []},
+      "state_coverage": {
+        "native_status": "missing",
+        "final_status": "partial",
+        "complement_status": "used",
+        "gap": "The native pass did not account for the visible 上新 badge or its unsupported lifecycle",
+        "complement_pass_id": "W-01",
+        "source_pass_ids": ["W-01"]
+      },
       "interaction_motion": {"native_status": "unsupported", "final_status": "unsupported", "complement_status": "not_applicable", "source_pass_ids": []}
     },
     "limitations": ["Only static matched screenshots were supplied"]
@@ -400,6 +408,28 @@ For an applicable dimension, `native_status: full` requires `complement_status: 
         "The first viewport contains a recognizable active-room entry point",
         "A five-second first-click test identifies room discovery as the primary next action"
       ]
+    },
+    {
+      "id": "F-002",
+      "dimension": "state_coverage",
+      "severity": "moderate",
+      "status": "tentative",
+      "confidence": 0.55,
+      "check_type": "semantic",
+      "source_pass_ids": ["core"],
+      "delta": "unknown",
+      "title": "The 上新 badge lacks an inspectable lifecycle contract",
+      "location": "首页 / 假面舞会卡片 / 标题右侧",
+      "evidence": {
+        "screen_id": "candidate-home",
+        "description": "A visible 上新 badge implies temporary or user-specific state"
+      },
+      "impact": "Without more evidence, design and engineering cannot determine appearance, exit, recurrence, or default-card behavior",
+      "recommendation": "Inspect Figma or PRD and define the badge lifecycle, or remove it when no material user value is lost",
+      "completion_criteria": [
+        "Figma or PRD defines appearance, update, exit, recurrence, and default-card rules",
+        "The card remains structurally stable after the badge exits"
+      ]
     }
   ]
 }
@@ -442,6 +472,105 @@ Store product effects that require a prototype test or analytics separately from
 }
 ```
 
+## Element accountability
+
+Run [element-accountability-audit.md](element-accountability-audit.md) for every accepted input and store the complete internal ledger. The default designer report shows only mapped problems and validation items, not this full table.
+
+```json
+{
+  "element_accountability": {
+    "scan_completed": true,
+    "input_sources": ["candidate-home-static"],
+    "categories_checked": [
+      "badge_tag",
+      "counter_timer",
+      "status_indicator",
+      "pagination_indicator",
+      "transient_prompt",
+      "icon_graphic",
+      "microcopy"
+    ],
+    "items": [
+      {
+        "id": "E-001",
+        "source_id": "candidate-home-static",
+        "screen_id": "candidate-home",
+        "location": "首页 / 假面舞会卡片 / 标题",
+        "element_type": "microcopy",
+        "visible_content": "假面舞会",
+        "semantic_role": "content",
+        "decision_value": "Identifies the gameplay entrance",
+        "necessity": "necessary",
+        "deletion_test": {
+          "result": "essential",
+          "rationale": "Removing it would leave the gameplay entrance unidentified"
+        },
+        "interaction": "The label belongs to the tappable card",
+        "design_system_rule": "Uses the gameplay-card title role",
+        "lifecycle": {
+          "requirement": "not_required",
+          "evidence_status": "not_applicable",
+          "appearance_trigger": "not_applicable",
+          "update_rule": "not_applicable",
+          "exit_rule": "not_applicable",
+          "recurrence_rule": "not_applicable",
+          "default_state": "not_applicable"
+        },
+        "verification_basis": ["visible_static", "design_system"],
+        "assessment": "no_issue",
+        "issue_basis": "none"
+      },
+      {
+        "id": "E-002",
+        "source_id": "candidate-home-static",
+        "screen_id": "candidate-home",
+        "location": "首页 / 假面舞会卡片 / 标题右侧",
+        "element_type": "badge_tag",
+        "visible_content": "上新",
+        "semantic_role": "status",
+        "decision_value": "May signal an unseen or recently released gameplay entry",
+        "necessity": "unknown",
+        "deletion_test": {
+          "result": "unknown",
+          "rationale": "The screenshot does not show whether removing it loses user-specific state"
+        },
+        "interaction": "No independent interaction is visible",
+        "design_system_rule": "No inspected badge rule was supplied",
+        "lifecycle": {
+          "requirement": "required",
+          "evidence_status": "unsupported",
+          "appearance_trigger": "unknown",
+          "update_rule": "unknown",
+          "exit_rule": "unknown",
+          "recurrence_rule": "unknown",
+          "default_state": "unknown"
+        },
+        "verification_basis": ["visible_static"],
+        "assessment": "validation_required",
+        "issue_basis": "lifecycle",
+        "target_ref": {"type": "finding", "id": "F-002"}
+      }
+    ]
+  }
+}
+```
+
+`categories_checked` must contain exactly the seven categories shown above, and `items` must include at least one inspected item for every accepted input source. Give every item a stable `E-xxx` ID. Novel, stateful, promotional, inconsistent, and core-task elements require individual rows.
+
+Allowed values:
+
+- `element_type`: the seven scan categories plus `other`
+- `semantic_role`: `status`, `promotion`, `action`, `navigation`, `feedback`, `content`, `decoration`, `unknown`
+- `necessity`: `necessary`, `supportive`, `redundant`, `unknown`
+- `deletion_test.result`: `essential`, `supportive`, `no_material_loss`, `unknown`; it must correspond to necessity
+- `lifecycle.requirement`: `required`, `not_required`, `unknown`
+- `lifecycle.evidence_status`: `complete`, `partial`, `missing`, `unsupported`, `not_applicable`
+- `verification_basis`: `visible_static`, `video`, `figma`, `prd`, `design_system`, `implementation`, `analytics`
+- `assessment`: `no_issue`, `finding`, `validation_required`
+- `issue_basis`: `none`, `necessity`, `lifecycle`, `semantics`, `affordance`, `system_consistency`
+
+`no_issue` has no target. `finding` maps to one confirmed finding. `validation_required` maps to one tentative finding or validation hypothesis. Unknown or redundant necessity and incomplete required lifecycles cannot be closed as `no_issue`. A screenshot-only lifecycle observation must remain `validation_required`; a confirmed lifecycle failure requires stronger inspected evidence from video, Figma, PRD, design-system rules, or implementation.
+
 ## Scoring output
 
 Run `python3 scripts/review_score.py <review.json> --write`. The script adds:
@@ -454,7 +583,7 @@ Run `python3 scripts/review_score.py <review.json> --write`. The script adds:
     "score_confidence": 0.77,
     "dimension_scores": {},
     "scoring_profile": "wira-v2",
-    "scoring_version": "1.12",
+    "scoring_version": "1.13",
     "development_readiness": {
       "status": "conditional_handoff",
       "label": "有条件进入开发",
@@ -492,8 +621,8 @@ The scored JSON remains the source of truth. `review.output_mode` changes only p
 
 For `designer_summary`, follow the four default sections in [report-template.md](report-template.md): 评审结果、优先改稿清单、本轮需要保留、修改后复审条件. Lead with score and readiness. Render every confirmed finding as a compact task card with ID, severity, location, concrete problem, impact, recommendation, and completion criteria. Separate tentative findings under `待验证（不扣分）`. Render at most three strengths and derive closure checks from all blocker and major findings plus goal-critical moderate findings.
 
-Do not render dimension score tables, dimension or multi-scale coverage, raw confidence/delta/evidence-level metadata, specialist synthesis, or capability-pass logs in the default visible response. These fields remain required in the JSON and full audit. When the environment supports files, save the full audit and scored JSON and provide only their paths after the concise report.
+Do not render dimension score tables, dimension or multi-scale coverage, the full element-accountability ledger, raw confidence/delta/evidence-level metadata, specialist synthesis, or capability-pass logs in the default visible response. These fields remain required in the JSON and full audit. When the environment supports files, save the full audit and scored JSON and provide only their paths after the concise report.
 
 For `audit_full`, render the seven audit sections—整体印象、易用性、视觉层级、一致性、无障碍性、做得好的地方、优先改进建议—then the evidence, coverage, detailed score, findings, validation, limitations, specialist synthesis, and capability-pass log defined in [report-template.md](report-template.md). 易用性 is a presentation roll-up for `wira-v2`, not a new scoring dimension; never deduct twice.
 
-In the full audit, render the coverage tables before detailed finding cards. Every visible region must appear in `Screen / Section Coverage`; use component and state tables to show inspection depth without creating extra scoring dimensions. Render `scope.dimension_coverage` so readers can trace the native expert, adaptive complement, final coverage, and source passes. Render the frozen `native_expert_snapshot` and complete native candidate list before `specialist_synthesis`, then render the capability-pass log.
+In the full audit, render the coverage tables and `element_accountability` ledger before detailed finding cards. Every visible region must appear in `Screen / Section Coverage`; use component, element, and state tables to show inspection depth without creating extra scoring dimensions. Render `scope.dimension_coverage` so readers can trace the native expert, adaptive complement, final coverage, and source passes. Render the frozen `native_expert_snapshot` and complete native candidate list before `specialist_synthesis`, then render the capability-pass log.

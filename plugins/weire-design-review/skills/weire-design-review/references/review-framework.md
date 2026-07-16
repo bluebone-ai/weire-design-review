@@ -148,6 +148,8 @@ Weights are normalized across applicable dimensions. Unsupported dimensions are 
 
 - Review only represented states unless the design scope explicitly claims flow completeness.
 - Include first-time, empty, loading, permission, failure, success, and recovery states when relevant.
+- Follow [element-accountability-audit.md](element-accountability-audit.md) for visible state-like micro-elements. A badge such as `上新`, an unread dot, a quota, or a countdown makes its visible state applicable for review even when its unshown lifecycle remains tentative.
+- Require appearance, update, exit, recurrence, and default-state rules from Figma, PRD, design-system, video, or implementation evidence before confirming a missing lifecycle.
 
 ### Interaction and motion
 

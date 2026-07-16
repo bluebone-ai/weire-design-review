@@ -1,4 +1,4 @@
 interface:
   display_name: "微热设计评审"
-  short_description: "冻结原生专家完整结论，再输出开发准入与改稿清单"
-  default_prompt: "Use $weire-design-review to confirm my design goal, run the host-native design expert in an isolated or sealed first stage, freeze every native candidate before Wira analysis, account for each candidate exactly once, complement uncovered Wira dimensions, and default to a Simplified-Chinese designer report."
+  short_description: "冻结专家结论并审查细节元素，再输出开发准入"
+  default_prompt: "Use $weire-design-review to confirm my design goal, freeze the host-native expert result, inventory semantic micro-elements, test their necessity and lifecycle evidence, preserve unsupported behavior as validation work, complement uncovered Wira dimensions, and default to a Simplified-Chinese designer report."
