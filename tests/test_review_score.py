@@ -44,6 +44,11 @@ def make_validated_review(execution_host: str = "codex") -> dict:
         {
             "title": "Required specialist baseline smoke test",
             "execution_host": execution_host,
+            "review_engine": (
+                "wira-core+codex-product-design"
+                if execution_host == "codex"
+                else "wira-core+claude-design"
+            ),
             "source_type": "screenshot",
             "platform": "ios",
             "core_task": "Find the primary action",
@@ -90,6 +95,15 @@ def make_validated_review(execution_host: str = "codex") -> dict:
         },
     ]
     native_pass_id = "P-01" if execution_host == "codex" else "C-01"
+    payload["scope"]["dimension_coverage"] = {
+        dimension: {
+            "native_status": "full",
+            "final_status": "full",
+            "complement_status": "not_needed",
+            "source_pass_ids": [native_pass_id],
+        }
+        for dimension in SCORER.PROFILES["generic-mobile-v1"]
+    }
     payload["specialist_synthesis"] = [
         {
             "id": "SI-001",
@@ -155,7 +169,7 @@ class DevelopmentReadinessTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             scored = json.loads(review_path.read_text(encoding="utf-8"))
-        self.assertEqual(scored["scores"]["scoring_version"], "1.8")
+        self.assertEqual(scored["scores"]["scoring_version"], "1.9")
         self.assertEqual(scored["scores"]["development_readiness"]["status"], "ready_for_development")
 
 
@@ -178,6 +192,94 @@ class RequiredSpecialistPassTests(unittest.TestCase):
         payload = make_validated_review("codex")
         payload["capability_passes"].pop()
         with self.assertRaisesRegex(SCORER.ReviewValidationError, "must include required"):
+            SCORER.validate_review(payload)
+
+    def test_review_engine_must_match_execution_host(self) -> None:
+        payload = make_validated_review("codex")
+        payload["review"]["review_engine"] = "wira-core+claude-design"
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "review_engine"):
+            SCORER.validate_review(payload)
+
+
+class AdaptiveDimensionComplementTests(unittest.TestCase):
+    def test_partial_native_coverage_requires_complement(self) -> None:
+        payload = make_validated_review("codex")
+        payload["scope"]["dimension_coverage"]["content"]["native_status"] = "partial"
+        payload["scope"]["dimension_coverage"]["content"]["gap"] = "Copy tone was mentioned without a comprehension check"
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "complement_status must be used"):
+            SCORER.validate_review(payload)
+
+    def test_used_complement_repairs_missing_dimension(self) -> None:
+        payload = make_validated_review("claude")
+        payload["capability_passes"].append(
+            {
+                "id": "W-01",
+                "provider": "wira-core",
+                "capability": "adaptive-dimension-complement",
+                "invocation": "automatic",
+                "status": "used",
+                "purposes": ["candidate_findings", "specialist_review"],
+                "input_kinds": ["static_screenshot"],
+                "input_sources": ["SCREEN-01"],
+                "coverage_dimensions": ["usability"],
+                "limitations": ["Static screenshot only"],
+            }
+        )
+        payload["scope"]["dimension_coverage"]["usability"] = {
+            "native_status": "missing",
+            "final_status": "partial",
+            "complement_status": "used",
+            "gap": "The native critique did not evaluate next-action predictability",
+            "complement_pass_id": "W-01",
+            "source_pass_ids": ["W-01"],
+        }
+        payload["specialist_synthesis"].append(
+            {
+                "id": "SI-002",
+                "source_pass_id": "W-01",
+                "summary": "The Wira complement checked the missing usability dimension",
+                "disposition": "not_adopted",
+                "target_refs": [],
+                "rationale": "No additional issue was supported by the static evidence",
+            }
+        )
+        SCORER.validate_review(payload)
+
+    def test_complement_must_list_repaired_dimension(self) -> None:
+        payload = make_validated_review("claude")
+        payload["capability_passes"].append(
+            {
+                "id": "W-01",
+                "provider": "wira-core",
+                "capability": "adaptive-dimension-complement",
+                "invocation": "automatic",
+                "status": "used",
+                "purposes": ["candidate_findings", "specialist_review"],
+                "input_kinds": ["static_screenshot"],
+                "input_sources": ["SCREEN-01"],
+                "coverage_dimensions": ["content"],
+                "limitations": ["Static screenshot only"],
+            }
+        )
+        payload["scope"]["dimension_coverage"]["usability"] = {
+            "native_status": "partial",
+            "final_status": "partial",
+            "complement_status": "used",
+            "gap": "The native critique did not evaluate next-action predictability",
+            "complement_pass_id": "W-01",
+            "source_pass_ids": ["C-01", "W-01"],
+        }
+        payload["specialist_synthesis"].append(
+            {
+                "id": "SI-002",
+                "source_pass_id": "W-01",
+                "summary": "The complement pass was recorded",
+                "disposition": "not_adopted",
+                "target_refs": [],
+                "rationale": "No accepted finding",
+            }
+        )
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "must list usability"):
             SCORER.validate_review(payload)
 
 

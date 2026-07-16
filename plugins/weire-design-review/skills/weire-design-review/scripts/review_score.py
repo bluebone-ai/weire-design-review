@@ -52,6 +52,10 @@ STATUSES = {"confirmed", "tentative"}
 SOURCE_TYPES = {"screenshot", "video", "figma", "mixed"}
 REVIEW_MODES = {"artifact", "redesign-comparison", "flow-audit", "direction-comparison"}
 EXECUTION_HOSTS = {"codex", "claude", "other"}
+REVIEW_ENGINES = {
+    "codex": "wira-core+codex-product-design",
+    "claude": "wira-core+claude-design",
+}
 DELTA_VALUES = {"better", "same", "worse", "unknown"}
 EVIDENCE_LEVELS = {"measured", "visually_estimated", "association_hypothesis"}
 MIN_SCORING_CONFIDENCE = 0.65
@@ -90,6 +94,10 @@ REQUIRED_BASELINE_PASSES = {
     ("codex-product-design", "audit"): "codex",
     ("claude-design", "design-critique"): "claude",
 }
+NATIVE_COVERAGE_STATUSES = {"full", "partial", "missing", "unsupported"}
+FINAL_COVERAGE_STATUSES = {"full", "partial", "unsupported"}
+COMPLEMENT_STATUSES = {"not_needed", "used", "not_applicable"}
+ADAPTIVE_COMPLEMENT_PASS = ("wira-core", "adaptive-dimension-complement")
 
 
 class ReviewValidationError(ValueError):
@@ -131,6 +139,11 @@ def validate_review(data: Any) -> dict[str, Any]:
     require(mode in REVIEW_MODES, f"review.mode must be one of {sorted(REVIEW_MODES)}")
     execution_host = review.get("execution_host")
     require(execution_host in EXECUTION_HOSTS, f"review.execution_host must be one of {sorted(EXECUTION_HOSTS)}")
+    if execution_host in REVIEW_ENGINES:
+        require(
+            review.get("review_engine") == REVIEW_ENGINES[execution_host],
+            f"review.review_engine must be {REVIEW_ENGINES[execution_host]} for {execution_host}",
+        )
     assumptions = review.get("assumptions", [])
     require(isinstance(assumptions, list), "review.assumptions must be an array")
 
@@ -171,6 +184,7 @@ def validate_review(data: Any) -> dict[str, Any]:
     require(isinstance(capability_passes, list), "capability_passes must be an array")
     pass_statuses: dict[str, str] = {}
     pass_purposes: dict[str, set[str]] = {}
+    pass_metadata: dict[str, dict[str, Any]] = {}
     baseline_passes: dict[tuple[str, str], dict[str, Any]] = {}
     for index, capability_pass in enumerate(capability_passes):
         prefix = f"capability_passes[{index}]"
@@ -186,6 +200,7 @@ def validate_review(data: Any) -> dict[str, Any]:
         status = capability_pass.get("status")
         require(status in CAPABILITY_PASS_STATUSES, f"{prefix}.status is invalid")
         pass_statuses[pass_id] = status
+        pass_metadata[pass_id] = capability_pass
         invocation = capability_pass.get("invocation", "automatic")
         require(invocation in CAPABILITY_INVOCATIONS, f"{prefix}.invocation is invalid")
         purposes = capability_pass.get("purposes")
@@ -199,7 +214,28 @@ def validate_review(data: Any) -> dict[str, Any]:
         require(set(input_kinds) <= CAPABILITY_INPUT_KINDS, f"{prefix}.input_kinds contains an invalid value")
         validate_text_list(capability_pass.get("input_sources", []), f"{prefix}.input_sources")
         validate_text_list(capability_pass.get("limitations", []), f"{prefix}.limitations")
+        if "coverage_dimensions" in capability_pass:
+            coverage_dimensions = capability_pass["coverage_dimensions"]
+            validate_text_list(coverage_dimensions, f"{prefix}.coverage_dimensions", allow_empty=False)
+            require(
+                len(coverage_dimensions) == len(set(coverage_dimensions)),
+                f"{prefix}.coverage_dimensions must not contain duplicates",
+            )
+            require(
+                set(coverage_dimensions) <= set(weights),
+                f"{prefix}.coverage_dimensions contains an invalid dimension for {profile_name}",
+            )
         baseline_key = (provider, capability)
+        if baseline_key == ADAPTIVE_COMPLEMENT_PASS:
+            require(invocation == "automatic", f"{prefix}.invocation must be automatic for the Wira adaptive complement")
+            require(status == "used", f"{prefix}.status must be used for a recorded Wira adaptive complement")
+            require(
+                set(purposes) & {"candidate_findings", "specialist_review"},
+                f"{prefix}.purposes must include candidate_findings or specialist_review",
+            )
+            require(input_kinds, f"{prefix}.input_kinds must not be empty for the Wira adaptive complement")
+            require(capability_pass.get("input_sources", []), f"{prefix}.input_sources must not be empty for the Wira adaptive complement")
+            require("coverage_dimensions" in capability_pass, f"{prefix}.coverage_dimensions is required for the Wira adaptive complement")
         if baseline_key in REQUIRED_BASELINE_PASSES:
             require(baseline_key not in baseline_passes, f"duplicate required baseline pass: {provider}/{capability}")
             baseline_passes[baseline_key] = capability_pass
@@ -237,6 +273,7 @@ def validate_review(data: Any) -> dict[str, Any]:
         baseline_passes[cross_host_key]["status"] == "unavailable",
         f"cross-host baseline {cross_host_key[0]}/{cross_host_key[1]} must be unavailable",
     )
+    native_pass_id = baseline_passes[native_key]["id"]
 
     def validate_source_pass_ids(value: Any, path: str) -> None:
         validate_text_list(value, path, allow_empty=False)
@@ -264,6 +301,82 @@ def validate_review(data: Any) -> dict[str, Any]:
     if profile_name == "wira-v2" and mode == "redesign-comparison":
         goal_confirmed = context["redesign_goal_status"] == "confirmed"
         require(dimensions["task_flow_delta"]["applicable"] == goal_confirmed, "task_flow_delta must be applicable only when redesign_goal_status is confirmed")
+
+    dimension_coverage = scope.get("dimension_coverage")
+    require(isinstance(dimension_coverage, dict), "scope.dimension_coverage must be an object")
+    require(
+        set(dimension_coverage) == set(weights),
+        f"scope.dimension_coverage must contain exactly the dimensions for {profile_name}",
+    )
+    referenced_complement_pass_ids: set[str] = set()
+    for dimension, coverage in dimension_coverage.items():
+        prefix = f"scope.dimension_coverage.{dimension}"
+        require(isinstance(coverage, dict), f"{prefix} must be an object")
+        native_status = coverage.get("native_status")
+        final_status = coverage.get("final_status")
+        complement_status = coverage.get("complement_status")
+        require(native_status in NATIVE_COVERAGE_STATUSES, f"{prefix}.native_status is invalid")
+        require(final_status in FINAL_COVERAGE_STATUSES, f"{prefix}.final_status is invalid")
+        require(complement_status in COMPLEMENT_STATUSES, f"{prefix}.complement_status is invalid")
+
+        source_pass_ids = coverage.get("source_pass_ids", [])
+        validate_text_list(source_pass_ids, f"{prefix}.source_pass_ids")
+        require(len(source_pass_ids) == len(set(source_pass_ids)), f"{prefix}.source_pass_ids must not contain duplicates")
+        for source_pass_id in source_pass_ids:
+            require(
+                source_pass_id == "core" or source_pass_id in pass_statuses,
+                f"{prefix}.source_pass_ids references unknown pass {source_pass_id}",
+            )
+            if source_pass_id != "core":
+                require(pass_statuses[source_pass_id] == "used", f"{prefix}.source_pass_ids references non-used pass {source_pass_id}")
+
+        if not dimensions[dimension]["applicable"]:
+            require(native_status == "unsupported", f"{prefix}.native_status must be unsupported when the dimension is N/A")
+            require(final_status == "unsupported", f"{prefix}.final_status must be unsupported when the dimension is N/A")
+            require(complement_status == "not_applicable", f"{prefix}.complement_status must be not_applicable when the dimension is N/A")
+            require(not source_pass_ids, f"{prefix}.source_pass_ids must be empty when the dimension is N/A")
+            require("complement_pass_id" not in coverage, f"{prefix}.complement_pass_id is invalid when the dimension is N/A")
+            continue
+
+        require(native_status != "unsupported", f"{prefix}.native_status cannot be unsupported for an applicable dimension")
+        require(final_status != "unsupported", f"{prefix}.final_status cannot be unsupported for an applicable dimension")
+        require(source_pass_ids, f"{prefix}.source_pass_ids must not be empty for an applicable dimension")
+        if native_status in {"full", "partial"}:
+            require(native_pass_id in source_pass_ids, f"{prefix}.source_pass_ids must cite the host-native expert")
+
+        if native_status == "full":
+            require(complement_status == "not_needed", f"{prefix}.complement_status must be not_needed after full native coverage")
+            require(final_status == "full", f"{prefix}.final_status must remain full after full native coverage")
+            require("complement_pass_id" not in coverage, f"{prefix}.complement_pass_id is invalid when no complement is needed")
+            continue
+
+        require(complement_status == "used", f"{prefix}.complement_status must be used after partial or missing native coverage")
+        validate_text(coverage.get("gap"), f"{prefix}.gap")
+        complement_pass_id = coverage.get("complement_pass_id")
+        validate_text(complement_pass_id, f"{prefix}.complement_pass_id")
+        require(complement_pass_id in pass_metadata, f"{prefix}.complement_pass_id references unknown pass {complement_pass_id}")
+        complement_pass = pass_metadata[complement_pass_id]
+        require(complement_pass.get("status") == "used", f"{prefix}.complement_pass_id must reference a used pass")
+        require(
+            (complement_pass.get("provider"), complement_pass.get("capability")) == ADAPTIVE_COMPLEMENT_PASS,
+            f"{prefix}.complement_pass_id must reference wira-core/adaptive-dimension-complement",
+        )
+        require(
+            dimension in complement_pass.get("coverage_dimensions", []),
+            f"{prefix}.complement_pass_id must list {dimension} in coverage_dimensions",
+        )
+        require(complement_pass_id in source_pass_ids, f"{prefix}.source_pass_ids must cite the complement pass")
+        referenced_complement_pass_ids.add(complement_pass_id)
+
+    recorded_complement_pass_ids = {
+        pass_id
+        for pass_id, capability_pass in pass_metadata.items()
+        if (capability_pass.get("provider"), capability_pass.get("capability")) == ADAPTIVE_COMPLEMENT_PASS
+    }
+    require(
+        recorded_complement_pass_ids == referenced_complement_pass_ids,
+        "Wira adaptive complement passes must be created only for referenced partial or missing dimensions",
+    )
 
     strengths = data.get("strengths", [])
     require(isinstance(strengths, list), "strengths must be an array")
@@ -543,7 +656,7 @@ def score_review(data: dict[str, Any]) -> dict[str, Any]:
         "score_confidence": rounded_confidence,
         "dimension_scores": dimension_scores,
         "scoring_profile": profile_name,
-        "scoring_version": "1.8",
+        "scoring_version": "1.9",
         "development_readiness": get_development_readiness(
             rounded_overall,
             rounded_confidence,

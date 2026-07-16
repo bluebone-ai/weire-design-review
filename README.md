@@ -14,6 +14,8 @@
 - 使用 `F-001` 形式输出“证据—影响—建议—验证”详细问题卡
 - 针对微热检查品牌调性、颜色感知、视觉语言和设计系统一致性
 - 每次评审强制运行当前宿主的设计专家基线：Codex Product Design `audit` 或 Claude Design `design-critique`
+- 先让当前平台专家完整评审，再通过维度覆盖矩阵自适应补齐本次未充分检查的微热维度
+- Codex 侧常见补齐色彩、品牌和视觉语言；Claude 侧常见补齐任务、入口理解、基线保留、状态与指标，实际路由以当轮覆盖缺口为准
 - 将专家结论按“已采纳 / 待验证 / 未采纳”统一汇总、去重和追溯
 - 通过脚本校验报告结构并生成确定性评分
 - 自动输出开发准入结论：85 分为正常开发线，70–84 分有条件进入，低于 70 分先调整设计
@@ -51,11 +53,13 @@ claude plugin install weire-design-review@bluebone-ai
 
 ## 强制专家基线
 
-本 Plugin 的微热规则负责证据、品牌、问题归并与确定性评分；每轮评审还必须成功运行当前宿主的独立设计专家，并把专家结论汇总进同一份报告：
+本 Plugin 的微热规则负责证据、品牌、维度覆盖、问题归并与确定性评分；每轮评审还必须成功运行当前宿主的独立设计专家，并把专家结论汇总进同一份报告：
 
 - Codex：每次运行 Product Design `audit`
 - Claude：每次运行官方 Design Plugin `design-critique`
 - Claude 的 `accessibility-review`、`design-system`、`ux-copy` 等仍按证据条件追加
+
+原生专家先不受限制地完成本轮分析。随后 Plugin 将每个适用维度标记为 `full / partial / missing / unsupported`，仅对 `partial` 或 `missing` 维度运行 `Wira adaptive complement`。该补充是微热专属检查，不会伪装成另一平台的专家能力。
 
 Claude 安装会声明对官方 Design Plugin 的跨 Marketplace 依赖。首次安装前需要先添加其 Marketplace：
 

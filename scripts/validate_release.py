@@ -100,6 +100,11 @@ def validate_skill() -> None:
     require((SKILL / "agents" / "openai.yaml").is_file(), "agents/openai.yaml is missing")
     require(SCORER.is_file(), "review_score.py is missing")
     require("host-native baseline pass" in text, "SKILL.md must require the host-native design expert baseline")
+    require("adaptive-dimension-complement.md" in text, "SKILL.md must run adaptive dimension complement routing")
+    require(
+        (SKILL / "references" / "adaptive-dimension-complement.md").is_file(),
+        "adaptive-dimension-complement.md is missing",
+    )
     require((SKILL / "references" / "design-goal-gate.md").is_file(), "design-goal-gate.md is missing")
     require("design-goal-gate.md" in text, "SKILL.md must run the mandatory design goal gate")
 

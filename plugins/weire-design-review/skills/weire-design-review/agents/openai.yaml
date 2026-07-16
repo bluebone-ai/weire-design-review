@@ -1,4 +1,4 @@
 interface:
   display_name: "微热设计评审"
-  short_description: "先确认设计目标，再结合微热规则与设计专家进行证据化评审"
-  default_prompt: "Use $weire-design-review to confirm my design goal first, then run the required host-native design expert pass, return evidence-backed findings and scores, and state whether the design passes the 85-point development-readiness gate."
+  short_description: "先确认目标，再由原生设计专家完整评审并自适应补齐维度"
+  default_prompt: "Use $weire-design-review to confirm my design goal first, run the full host-native design expert, adaptively complement uncovered Wira dimensions, return evidence-backed findings and scores, and state whether the design passes the 85-point development-readiness gate."

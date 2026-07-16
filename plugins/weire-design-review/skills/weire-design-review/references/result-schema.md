@@ -22,6 +22,7 @@ Create UTF-8 JSON. `profile` defaults to `generic-mobile-v1`; use `wira-v1` for 
     "profile": "wira-v2",
     "mode": "redesign-comparison",
     "execution_host": "codex",
+    "review_engine": "wira-core+codex-product-design",
     "source_type": "mixed",
     "platform": "ios",
     "core_task": "找到感兴趣的房间并愿意进入",
@@ -56,6 +57,7 @@ Allowed values:
 - `profile`: `generic-mobile-v1`, `wira-v1`, `wira-v2`
 - `mode`: `artifact`, `redesign-comparison`, `flow-audit`, `direction-comparison`
 - `execution_host`: `codex`, `claude`, `other`
+- `review_engine`: `wira-core+codex-product-design` on Codex; `wira-core+claude-design` on Claude
 - `source_type`: `screenshot`, `video`, `figma`, `mixed`
 - `brand_charter_status`: `missing`, `candidate`, `confirmed`
 - `design_goal_status`: final scored reviews require `confirmed`
@@ -97,6 +99,18 @@ Record both mandatory baseline capabilities on every review. The array is requir
       "limitations": ["No implementation or inspectable Figma values were supplied"]
     },
     {
+      "id": "W-01",
+      "provider": "wira-core",
+      "capability": "adaptive-dimension-complement",
+      "invocation": "automatic",
+      "status": "used",
+      "purposes": ["candidate_findings", "specialist_review"],
+      "input_kinds": ["static_screenshot"],
+      "input_sources": ["candidate-home-static"],
+      "coverage_dimensions": ["color_expression", "brand_alignment"],
+      "limitations": ["Static evidence cannot confirm interaction or unshown states"]
+    },
+    {
       "id": "C-01",
       "provider": "claude-design",
       "capability": "design-critique",
@@ -130,6 +144,8 @@ Mandatory baseline rules:
 - An unavailable pass must state the host boundary or missing dependency in `limitations`.
 - A used baseline must cite accepted input kinds and sources and must have at least one `specialist_synthesis` item.
 
+Use `coverage_dimensions` on `wira-core / adaptive-dimension-complement` to list only the supported profile gaps repaired after the native expert pass. Do not create this pass when every applicable dimension has full native coverage. Read [adaptive-dimension-complement.md](adaptive-dimension-complement.md).
+
 For a readable static screenshot, the host-native baseline is `used`, not `skipped`. Record static-input limits in `limitations`; handle overlap with the core review during finding consolidation. The validator rejects a missing, skipped, or unavailable host-native baseline.
 
 ## Specialist synthesis
@@ -162,6 +178,14 @@ For every used pass whose purposes include `candidate_findings` or `specialist_r
       "disposition": "not_adopted",
       "target_refs": [],
       "rationale": "The recommendation adds unsupported complexity and is not required by visible evidence"
+    },
+    {
+      "id": "SI-004",
+      "source_pass_id": "W-01",
+      "summary": "The Wira complement completed the uncovered color and brand checks without finding another material issue",
+      "disposition": "not_adopted",
+      "target_refs": [],
+      "rationale": "The supported observations were already represented by the accepted final findings"
     }
   ]
 }
@@ -196,12 +220,47 @@ Include exactly the dimensions belonging to the selected profile. Every dimensio
       "state_coverage": {"applicable": false, "evidence_confidence": 0},
       "interaction_motion": {"applicable": false, "evidence_confidence": 0}
     },
+    "dimension_coverage": {
+      "task_flow_delta": {"native_status": "full", "final_status": "full", "complement_status": "not_needed", "source_pass_ids": ["P-01"]},
+      "baseline_capability": {"native_status": "full", "final_status": "full", "complement_status": "not_needed", "source_pass_ids": ["P-01"]},
+      "visual_hierarchy": {"native_status": "full", "final_status": "full", "complement_status": "not_needed", "source_pass_ids": ["P-01"]},
+      "color_expression": {
+        "native_status": "partial",
+        "final_status": "full",
+        "complement_status": "used",
+        "gap": "The native pass noted contrast but did not inspect palette cleanliness or Wira category signal",
+        "complement_pass_id": "W-01",
+        "source_pass_ids": ["P-01", "W-01"]
+      },
+      "design_system_evolution": {"native_status": "full", "final_status": "full", "complement_status": "not_needed", "source_pass_ids": ["P-01"]},
+      "social_connection": {"native_status": "full", "final_status": "full", "complement_status": "not_needed", "source_pass_ids": ["P-01"]},
+      "brand_alignment": {
+        "native_status": "missing",
+        "final_status": "partial",
+        "complement_status": "used",
+        "gap": "The native pass did not compare the screen with the confirmed Wira traits and anti-traits",
+        "complement_pass_id": "W-01",
+        "source_pass_ids": ["W-01"]
+      },
+      "content_tone": {"native_status": "full", "final_status": "full", "complement_status": "not_needed", "source_pass_ids": ["P-01"]},
+      "accessibility": {"native_status": "full", "final_status": "full", "complement_status": "not_needed", "source_pass_ids": ["P-01"]},
+      "state_coverage": {"native_status": "unsupported", "final_status": "unsupported", "complement_status": "not_applicable", "source_pass_ids": []},
+      "interaction_motion": {"native_status": "unsupported", "final_status": "unsupported", "complement_status": "not_applicable", "source_pass_ids": []}
+    },
     "limitations": ["Only static matched screenshots were supplied"]
   }
 }
 ```
 
 Use the dimension IDs in `review-framework.md`. Non-applicable dimensions require confidence `0` and score as `N/A`.
+
+`dimension_coverage` must contain the same complete dimension set as `dimensions`.
+
+- `native_status`: `full`, `partial`, `missing`, `unsupported`
+- `final_status`: `full`, `partial`, `unsupported`
+- `complement_status`: `not_needed`, `used`, `not_applicable`
+
+For an applicable dimension, `native_status: full` requires `complement_status: not_needed`. A `partial` or `missing` native result requires a used Wira adaptive complement, a non-empty `gap`, and a `complement_pass_id` whose `coverage_dimensions` includes that dimension. Non-applicable dimensions use `unsupported / unsupported / not_applicable` with no sources. An applicable dimension may not remain missing in a scored report.
 
 ## Findings and deltas
 
@@ -286,7 +345,7 @@ Run `python3 scripts/review_score.py <review.json> --write`. The script adds:
     "score_confidence": 0.77,
     "dimension_scores": {},
     "scoring_profile": "wira-v2",
-    "scoring_version": "1.8",
+    "scoring_version": "1.9",
     "development_readiness": {
       "status": "conditional_handoff",
       "label": "有条件进入开发",
@@ -327,5 +386,7 @@ The scored JSON remains the source of truth. Render it with the seven fixed sect
 Render each item in `findings` as a detailed problem card following [report-template.md](report-template.md). Preserve the finding ID and keep evidence, impact, recommendation, and validation visibly separate. Priority recommendations summarize at most three root causes and do not replace the full cards.
 
 Render the coverage tables before the cards. Every visible region must appear in `Screen / Section Coverage`; use the component and state tables to show the depth inspected without creating extra scoring dimensions.
+
+Render `scope.dimension_coverage` before detailed findings so readers can see the native expert's coverage, the specific gap that triggered a Wira complement, the final coverage state, and provenance. A complement is part of the same host-specific review engine; it is not a simulated cross-host expert.
 
 Render `specialist_synthesis` as a compact appendix table before the capability-pass log. Readers must be able to trace adopted entries to final finding or strength IDs, retained entries to tentative findings or hypotheses, and rejected entries to an explicit rationale.

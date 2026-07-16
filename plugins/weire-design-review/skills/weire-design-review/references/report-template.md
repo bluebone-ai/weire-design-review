@@ -8,6 +8,7 @@ Include:
 
 - one-sentence verdict;
 - the confirmed design goal and success criteria;
+- the host-specific review engine: `Wira Core + Codex Product Design` or `Wira Core + Claude Design`;
 - overall score and score confidence;
 - the deterministic `Development Readiness / 开发准入` result, decision basis, 85-point normal development line, and next action;
 - redesign delta when comparison is valid;
@@ -73,6 +74,7 @@ Do not repeat the full finding list here.
 
 Before the finding cards, follow [multi-scale-audit.md](multi-scale-audit.md) and render:
 
+- `Dimension Coverage & Complement`: every profile dimension, native-expert coverage, observed gap, Wira complement status, final coverage, and source pass IDs;
 - `Screen / Section Coverage`: every visible region, its purpose, review status, and related finding IDs;
 - `Component / Element Audit`: core, repeated, novel, inconsistent, and risky components, with low-risk standard components grouped when appropriate;
 - `State / Edge-case Audit`: relevant quantities, content boundaries, interaction states, device conditions, loading, empty, error, and recovery behavior.
@@ -116,13 +118,23 @@ After the seven sections, include:
 1. evidence scope, context, and assumptions;
 2. current-versus-new delta table when applicable;
 3. detailed dimension scores with `N/A` preserved;
-4. screen/section, component/element, and state/edge-case audit tables;
-5. detailed finding cards ordered by severity and task impact;
-6. validation hypotheses and target metrics;
-7. evidence limitations and untested areas;
-8. specialist capability synthesis with adopted, retained, and not-adopted conclusions;
-9. capability-pass log with provider, purpose, status, inputs, contribution scope, and limitations;
-10. saved artifact locations.
+4. dimension coverage and adaptive-complement table;
+5. screen/section, component/element, and state/edge-case audit tables;
+6. detailed finding cards ordered by severity and task impact;
+7. validation hypotheses and target metrics;
+8. evidence limitations and untested areas;
+9. specialist capability synthesis with adopted, retained, and not-adopted conclusions;
+10. capability-pass log with provider, purpose, status, inputs, contribution scope, and limitations;
+11. saved artifact locations.
+
+Render dimension coverage as:
+
+| Dimension | Native expert | Native coverage | Gap | Wira complement | Final coverage | Sources |
+|---|---|---|---|---|---|---|
+| `color_expression` | Product Design audit | Partial | Palette cleanliness and Wira category signal not inspected | Used / W-01 | Full | P-01, W-01 |
+| `state_coverage` | Product Design audit | Unsupported | Static screenshot | N/A | Unsupported / N/A | — |
+
+Use `Wira adaptive complement`, not the unavailable cross-host expert, as the supplement label. Do not claim that a dimension was complemented when its source pass did not run. Keep `partial` after supplementation when the accepted evidence still limits the conclusion.
 
 Render the specialist synthesis as:
 
@@ -139,6 +151,7 @@ Render the capability-pass log as:
 | ID | Provider | Capability | Invocation | Status | Input kind / source | Contribution scope | Limitations |
 |---|---|---|---|---|---|---|---|
 | P-01 | Codex Product Design | audit | Required | Used | Static screenshot / CAND-HOME-01 | Evidence and candidate findings | Interaction and unshown states unsupported |
+| W-01 | Wira Core | adaptive-dimension-complement | Automatic | Used | Static screenshot / CAND-HOME-01 | Color expression and brand-alignment gaps | Interaction and unshown states unsupported |
 | C-01 | Claude Design | design-critique | Required | Unavailable | — | None | Claude plugin cannot run in the Codex host |
 
 Always show both required baseline rows. The row matching `review.execution_host` must be `Used`; the cross-host row must be `Unavailable`. If the host-native row was not used, do not render a scored final report.
