@@ -22,12 +22,14 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
 - Keep this skill's evidence rules, Wira brand standard, finding consolidation, and score as the authority.
 - Identify `review.execution_host` as `codex`, `claude`, or `other` before specialist routing.
 - After the design goal is confirmed, run the host-native baseline pass for every review with readable visual evidence: Product Design `audit` on Codex; Design `design-critique` on Claude. This pass is required even for a single static screenshot and even when its checklist overlaps the core review.
+- Read [native-expert-snapshot.md](references/native-expert-snapshot.md) completely. Run the native baseline as a sealed first-stage review, freeze its raw output before Wira analysis, and assign stable IDs to every material native observation.
+- Prefer a fresh isolated subagent with only the accepted artifact plus neutral product, audience, platform, and stage context. Do not leak Wira score weights, dimension names, known findings, stakeholder complaints, target-metric priority, or proposed conclusions into that native stage. If the native capability cannot run in an isolated subagent, use the documented sealed sequential fallback.
 - Let the host-native expert review at full breadth. Do not pre-assign it only selected Wira dimensions or suppress material conclusions because another host tends to cover them.
 - Record the other platform's baseline pass as `unavailable` because host plugins cannot be invoked across platforms. Do not call it `skipped`.
 - If the host-native baseline capability is missing, disabled, or fails, stop before scoring. State how to install or restore it and do not deliver a completed review.
 - After the required baseline, select the smallest useful set of additional specialist passes. Do not run every optional capability by default.
 - Honor an explicit Product Design or Claude Design invocation when the matching host capability is available and the supplied artifact is readable. Run the pass first and deduplicate its output later; overlap with the core review is not a skip reason.
-- Treat specialist output as candidate findings or follow-on material until it is checked against accepted evidence and normalized into this skill's schema.
+- Treat specialist output as candidate findings or follow-on material until it is checked against accepted evidence and normalized into this skill's schema. Every material native candidate must receive exactly one final disposition; no candidate may disappear during summarization or deduplication.
 - After the full native pass, run [adaptive-dimension-complement.md](references/adaptive-dimension-complement.md). Build `scope.dimension_coverage`, then use the Wira adaptive complement only for applicable dimensions whose native coverage is `partial` or `missing`.
 - Never label the Wira complement as the unavailable cross-host expert. Preserve the native expert's complete material contributions and record complement provenance separately.
 - Continue with the core workflow when an additional optional capability is unavailable. Record the unavailable or skipped pass; do not imply that it ran.
@@ -54,10 +56,11 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
    - Do not convert missing evidence into a low score.
 4. Run the required host-native expert pass.
    - Follow [capability-orchestration.md](references/capability-orchestration.md) and record each considered pass in `capability_passes`.
+   - Follow [native-expert-snapshot.md](references/native-expert-snapshot.md). Complete and preserve `native_expert_snapshot` before starting Wira core checks, coverage mapping, or scoring.
    - On Codex, load and run Product Design `audit` for accepted screenshots or screenshot-first flow steps before consolidation.
    - On Claude, load and run Design `design-critique` against the same accepted evidence before consolidation.
    - For a readable static screenshot, run the required baseline as a one-step critique and mark interaction, motion, unshown states, and full accessibility compliance unsupported.
-   - Run the native expert without narrowing its framework. Preserve every materially distinct conclusion in `specialist_synthesis`, including verified unique findings that the Wira core did not anticipate.
+   - Run the native expert without narrowing its framework. Record conclusions for first impression, usability, visual hierarchy, consistency, and accessibility. Preserve the raw report and extract every materially distinct conclusion as a stable native candidate.
 5. Run the Wira core and adaptive complement passes.
    - Run measurable checks: contrast when measurable, text size, touch target, clipping, alignment, tokens, components, and platform-rule violations.
    - Run semantic checks: hierarchy, comprehension, task clarity, cognitive load, recovery, state continuity, participation pressure, and motion meaning.
@@ -78,6 +81,7 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
 7. Consolidate findings.
    - Merge repeated symptoms caused by one root issue and keep one primary dimension per finding.
    - Consolidate the native expert and Wira complement together. A verified native-only or complement-only conclusion remains eligible for the final report and score; agreement never creates a second deduction.
+   - Map every native candidate exactly once through `specialist_synthesis.source_candidate_ids`. Use `adopted`, `retained_for_validation`, or `not_adopted` with an explicit rationale. Stop before scoring if any native candidate is unmapped or mapped more than once.
    - Avoid fabricated measurements. State `visually estimated` when no measurement tool was used.
    - For redesigns, mark every finding or strength `better`, `same`, `worse`, or `unknown` relative to the matched baseline when the schema supports it.
 8. Score deterministically.

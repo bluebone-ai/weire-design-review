@@ -108,6 +108,8 @@ def validate_skill() -> None:
     )
     require((SKILL / "references" / "design-goal-gate.md").is_file(), "design-goal-gate.md is missing")
     require("design-goal-gate.md" in text, "SKILL.md must run the mandatory design goal gate")
+    require((SKILL / "references" / "native-expert-snapshot.md").is_file(), "native-expert-snapshot.md is missing")
+    require("native-expert-snapshot.md" in text, "SKILL.md must freeze the host-native expert snapshot")
     require("designer_summary" in text, "SKILL.md must define the default designer summary mode")
     require("audit_full" in text, "SKILL.md must retain the optional full audit mode")
     require(report_template.is_file(), "report-template.md is missing")

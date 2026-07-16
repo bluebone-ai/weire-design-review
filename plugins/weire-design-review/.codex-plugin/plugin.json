@@ -1,7 +1,7 @@
 {
   "name": "weire-design-review",
   "version": "0.7.1",
-  "description": "Evidence-based mobile design review for Weire/Wira/Laboo, with native-expert analysis, deterministic scoring, and concise designer-ready revision reports.",
+  "description": "Evidence-based mobile design review for Weire/Wira/Laboo, with a frozen native-expert snapshot, lossless candidate disposition, deterministic scoring, and concise designer reports.",
   "author": {
     "name": "BlueBone AI",
     "url": "https://github.com/bluebone-ai"
@@ -18,7 +18,7 @@
   "interface": {
     "displayName": "微热设计评审",
     "shortDescription": "融合目标、品牌与设计系统的证据化移动端评审",
-    "longDescription": "评审截图、录屏与 Figma 设计，先运行平台原生设计专家，再自适应补齐未覆盖的微热维度；默认输出得分、开发准入、逐项改稿任务与复审条件，完整审计按需展开。",
+    "longDescription": "评审截图、录屏与 Figma 设计，先隔离运行并冻结平台原生设计专家结果，再逐条归并候选问题并补齐微热维度；默认输出得分、开发准入、改稿任务与复审条件。",
     "developerName": "BlueBone AI",
     "category": "Productivity",
     "capabilities": [
@@ -26,6 +26,6 @@
       "Image and flow analysis",
       "Deterministic scoring"
     ],
-    "defaultPrompt": "使用 $weire-design-review 评审这张微热设计稿，先确认目标和证据，完整运行当前平台设计专家，再自适应补齐维度；默认用简体中文给我设计师简版，包括得分、开发准入、具体问题、优化动作、保留项和复审条件，不使用中英双语标题。"
+    "defaultPrompt": "使用 $weire-design-review 评审这张微热设计稿，先确认目标和证据，再隔离运行并冻结当前平台设计专家的完整原生结果，确保每个候选问题都有最终去向，然后补齐微热维度；默认用简体中文给我设计师简版。"
   }
 }

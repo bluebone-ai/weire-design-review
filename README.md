@@ -16,6 +16,8 @@
 - 完整审计仍保留整体印象、易用性、视觉层级、一致性、无障碍性、亮点、覆盖矩阵、专家结论及能力日志，并在明确要求时展开
 - 针对微热检查品牌调性、颜色感知、视觉语言和设计系统一致性
 - 每次评审强制运行当前宿主的设计专家基线：Codex Product Design `audit` 或 Claude Design `design-critique`
+- 平台专家先在隔离或密封阶段完成完整原生评审并冻结快照，再进入微热规则、目标和评分归并
+- 原生专家提出的每个实质候选问题都必须明确记录为采纳、待验证或不采纳，禁止无声丢失
 - 先让当前平台专家完整评审，再通过维度覆盖矩阵自适应补齐本次未充分检查的微热维度
 - Codex 侧常见补齐色彩、品牌和视觉语言；Claude 侧常见补齐任务、入口理解、基线保留、状态与指标，实际路由以当轮覆盖缺口为准
 - 将专家结论按“已采纳 / 待验证 / 未采纳”统一汇总、去重和追溯
@@ -69,7 +71,7 @@ claude plugin install weire-design-review@bluebone-ai
 - Claude：每次运行官方 Design Plugin `design-critique`
 - Claude 的 `accessibility-review`、`design-system`、`ux-copy` 等仍按证据条件追加
 
-原生专家先不受限制地完成本轮分析。随后 Plugin 将每个适用维度标记为 `full / partial / missing / unsupported`，仅对 `partial` 或 `missing` 维度运行 `Wira adaptive complement`。该补充是微热专属检查，不会伪装成另一平台的专家能力。
+原生专家先在独立子任务中不受微热评分、已知问题或目标优先级限制地完成本轮分析；宿主无法隔离时使用密封顺序阶段。Plugin 会冻结原生报告和 `NC-001` 形式的候选问题，再将每个候选逐条映射为采纳、待验证或不采纳。随后才把适用维度标记为 `full / partial / missing / unsupported`，仅对 `partial` 或 `missing` 维度运行 `Wira adaptive complement`。该补充是微热专属检查，不会伪装成另一平台的专家能力。
 
 Claude 安装会声明对官方 Design Plugin 的跨 Marketplace 依赖。首次安装前需要先添加其 Marketplace：
 

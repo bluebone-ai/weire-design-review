@@ -198,11 +198,12 @@ After the seven sections, render:
 5. Detailed finding cards.
 6. Validation hypotheses and evidence limitations.
 7. Dimension score detail and deterministic readiness reasons.
-8. Specialist synthesis.
-9. Capability-pass log.
+8. Frozen native-expert snapshot and its full candidate list.
+9. Specialist synthesis, including the final disposition of every native candidate.
+10. Capability-pass log.
 
 For detailed cards, preserve ID, severity, status, confidence, delta, evidence level, location, evidence, impact, recommendation, completion criteria, and validation. Tentative findings remain visible but explicitly do not deduct score.
 
-The specialist-synthesis table must precede the capability-pass log. Show which candidate conclusions were adopted, retained for validation, or rejected, with target IDs and rationale. The capability log must make the required host-native baseline visible, distinguish the Wira adaptive complement from the unavailable cross-host expert, and record optional capabilities as used, skipped, or unavailable.
+The frozen native snapshot must precede specialist synthesis. Show its execution mode, preserved artifact reference, five native framework conclusions, and complete `NC-xxx` candidate list. The specialist-synthesis table must map every native candidate exactly once before the capability-pass log. Show which conclusions were adopted, retained for validation, or rejected, with target IDs and rationale. The capability log must make the required host-native baseline visible, distinguish the Wira adaptive complement from the unavailable cross-host expert, and record optional capabilities as used, skipped, or unavailable.
 
 Use `N/A` for unsupported dimensions. Never represent `N/A` as zero.

@@ -97,6 +97,24 @@ def make_validated_review(execution_host: str = "codex") -> dict:
         },
     ]
     native_pass_id = "P-01" if execution_host == "codex" else "C-01"
+    payload["native_expert_snapshot"] = {
+        "pass_id": native_pass_id,
+        "execution_mode": "isolated_subagent",
+        "context_scope": "artifact_product_audience_stage_only",
+        "completed_before_core_review": True,
+        "raw_output_preserved": True,
+        "artifact_ref": "inline:native-expert-snapshot",
+        "input_sources": ["SCREEN-01"],
+        "framework_coverage": {
+            section: {
+                "status": "no_material_issue",
+                "summary": f"The native expert completed the {section} check without another material candidate",
+                "candidate_ids": [],
+            }
+            for section in SCORER.NATIVE_FRAMEWORK_SECTIONS
+        },
+        "candidates": [],
+    }
     payload["scope"]["dimension_coverage"] = {
         dimension: {
             "native_status": "full",
@@ -110,6 +128,7 @@ def make_validated_review(execution_host: str = "codex") -> dict:
         {
             "id": "SI-001",
             "source_pass_id": native_pass_id,
+            "source_candidate_ids": [],
             "summary": "The specialist pass found no additional material issue after evidence verification",
             "disposition": "not_adopted",
             "target_refs": [],
@@ -195,7 +214,7 @@ class DevelopmentReadinessTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             scored = json.loads(review_path.read_text(encoding="utf-8"))
-        self.assertEqual(scored["scores"]["scoring_version"], "1.11")
+        self.assertEqual(scored["scores"]["scoring_version"], "1.12")
         self.assertEqual(scored["scores"]["development_readiness"]["status"], "ready_for_development")
 
 
@@ -224,6 +243,91 @@ class RequiredSpecialistPassTests(unittest.TestCase):
         payload = make_validated_review("codex")
         payload["review"]["review_engine"] = "wira-core+claude-design"
         with self.assertRaisesRegex(SCORER.ReviewValidationError, "review_engine"):
+            SCORER.validate_review(payload)
+
+
+class NativeExpertSnapshotTests(unittest.TestCase):
+    @staticmethod
+    def add_adopted_native_candidate(payload: dict) -> None:
+        native_pass_id = payload["native_expert_snapshot"]["pass_id"]
+        payload["native_expert_snapshot"]["framework_coverage"]["first_impression"] = {
+            "status": "finding",
+            "summary": "Warm mid-low-lightness colors create a heavy first impression",
+            "candidate_ids": ["NC-001"],
+        }
+        payload["native_expert_snapshot"]["candidates"] = [
+            {
+                "id": "NC-001",
+                "kind": "finding",
+                "source_section": "first_impression",
+                "category": "color_and_material",
+                "summary": "Warm colors cluster at similar mid-low lightness and make the palette feel heavy",
+                "evidence": {
+                    "screen_id": "SCREEN-01",
+                    "description": "Orange, pink, purple, and brown surfaces in the first viewport",
+                },
+            }
+        ]
+        accepted_finding = validated_finding()
+        accepted_finding["source_pass_ids"] = ["core", native_pass_id]
+        payload["findings"] = [accepted_finding]
+        payload["specialist_synthesis"] = [
+            {
+                "id": "SI-001",
+                "source_pass_id": native_pass_id,
+                "source_candidate_ids": ["NC-001"],
+                "summary": "The native color and material concern was verified",
+                "disposition": "adopted",
+                "target_refs": [{"type": "finding", "id": "F-001"}],
+                "rationale": "The visible evidence supports the reported mechanism",
+            }
+        ]
+
+    def test_native_snapshot_is_required(self) -> None:
+        payload = make_validated_review("claude")
+        payload.pop("native_expert_snapshot")
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "native_expert_snapshot must be an object"):
+            SCORER.validate_review(payload)
+
+    def test_native_snapshot_must_finish_before_core_review(self) -> None:
+        payload = make_validated_review("codex")
+        payload["native_expert_snapshot"]["completed_before_core_review"] = False
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "completed_before_core_review must be true"):
+            SCORER.validate_review(payload)
+
+    def test_native_snapshot_requires_all_framework_sections(self) -> None:
+        payload = make_validated_review("claude")
+        payload["native_expert_snapshot"]["framework_coverage"].pop("consistency")
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "exactly the five native sections"):
+            SCORER.validate_review(payload)
+
+    def test_native_candidate_can_be_preserved_and_adopted(self) -> None:
+        payload = make_validated_review("claude")
+        self.add_adopted_native_candidate(payload)
+        SCORER.validate_review(payload)
+
+    def test_unmapped_native_candidate_is_rejected(self) -> None:
+        payload = make_validated_review("claude")
+        self.add_adopted_native_candidate(payload)
+        payload["specialist_synthesis"][0]["source_candidate_ids"] = []
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "native candidates must have one"):
+            SCORER.validate_review(payload)
+
+    def test_duplicate_native_candidate_disposition_is_rejected(self) -> None:
+        payload = make_validated_review("codex")
+        self.add_adopted_native_candidate(payload)
+        payload["specialist_synthesis"].append(
+            {
+                "id": "SI-002",
+                "source_pass_id": "P-01",
+                "source_candidate_ids": ["NC-001"],
+                "summary": "The same candidate was incorrectly handled twice",
+                "disposition": "not_adopted",
+                "target_refs": [],
+                "rationale": "Duplicate disposition fixture",
+            }
+        )
+        with self.assertRaisesRegex(SCORER.ReviewValidationError, "must not have multiple"):
             SCORER.validate_review(payload)
 
 

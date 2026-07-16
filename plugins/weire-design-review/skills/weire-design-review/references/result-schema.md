@@ -4,6 +4,7 @@
 
 - Review and context
 - Capability passes
+- Native expert snapshot
 - Specialist synthesis
 - Scope dimensions
 - Findings and deltas
@@ -146,11 +147,103 @@ Mandatory baseline rules:
 - With `execution_host: claude`, Claude Design must be `used` and Product Design must be `unavailable`.
 - With `execution_host: other`, both are `unavailable` and the scorer rejects a completed review; use this only for an incomplete-review diagnostic.
 - An unavailable pass must state the host boundary or missing dependency in `limitations`.
-- A used baseline must cite accepted input kinds and sources and must have at least one `specialist_synthesis` item.
+- A used baseline must cite accepted input kinds and sources, have one completed `native_expert_snapshot`, and have at least one `specialist_synthesis` item.
 
 Use `coverage_dimensions` on `wira-core / adaptive-dimension-complement` to list only the supported profile gaps repaired after the native expert pass. Do not create this pass when every applicable dimension has full native coverage. Read [adaptive-dimension-complement.md](adaptive-dimension-complement.md).
 
 For a readable static screenshot, the host-native baseline is `used`, not `skipped`. Record static-input limits in `limitations`; handle overlap with the core review during finding consolidation. The validator rejects a missing, skipped, or unavailable host-native baseline.
+
+## Native expert snapshot
+
+Create exactly one frozen snapshot for the used host-native baseline before Wira core analysis. Follow [native-expert-snapshot.md](native-expert-snapshot.md).
+
+```json
+{
+  "native_expert_snapshot": {
+    "pass_id": "P-01",
+    "execution_mode": "isolated_subagent",
+    "context_scope": "artifact_product_audience_stage_only",
+    "completed_before_core_review": true,
+    "raw_output_preserved": true,
+    "artifact_ref": "artifacts/native-expert-report.md",
+    "input_sources": ["candidate-home-static"],
+    "framework_coverage": {
+      "first_impression": {
+        "status": "finding",
+        "summary": "The warm mid-low-lightness palette creates a heavy first impression",
+        "candidate_ids": ["NC-001"]
+      },
+      "usability": {
+        "status": "finding",
+        "summary": "Secondary gameplay entries are harder to understand from their labels and artwork",
+        "candidate_ids": ["NC-002"]
+      },
+      "visual_hierarchy": {
+        "status": "finding",
+        "summary": "The promoted entrance is visually dominant but its illustration does not fully explain the interaction",
+        "candidate_ids": ["NC-003"]
+      },
+      "consistency": {
+        "status": "no_material_issue",
+        "summary": "No additional material consistency issue was supported by the accepted screenshot",
+        "candidate_ids": []
+      },
+      "accessibility": {
+        "status": "unsupported",
+        "summary": "The screenshot supports visible readability risks but not measured compliance",
+        "candidate_ids": []
+      }
+    },
+    "candidates": [
+      {
+        "id": "NC-001",
+        "kind": "finding",
+        "source_section": "first_impression",
+        "category": "color_and_material",
+        "summary": "Warm colors cluster at similar mid-low lightness and the brown card appears gray and heavy",
+        "evidence": {
+          "screen_id": "candidate-home-static",
+          "description": "Orange, pink, purple, and brown modules in the first viewport"
+        }
+      },
+      {
+        "id": "NC-002",
+        "kind": "finding",
+        "source_section": "usability",
+        "category": "content_comprehension",
+        "summary": "Secondary gameplay entries do not clearly communicate their activity or outcome",
+        "evidence": {
+          "screen_id": "candidate-home-static",
+          "description": "Small secondary entries rely on stylized artwork and short labels"
+        }
+      },
+      {
+        "id": "NC-003",
+        "kind": "finding",
+        "source_section": "visual_hierarchy",
+        "category": "entry_hierarchy",
+        "summary": "The promoted entrance dominates attention but its artwork only partially explains the interaction",
+        "evidence": {
+          "screen_id": "candidate-home-static",
+          "description": "The largest gameplay card uses a mask illustration and the strongest size treatment"
+        }
+      }
+    ]
+  }
+}
+```
+
+Allowed values:
+
+- `execution_mode`: `isolated_subagent`, `sealed_sequential`
+- `context_scope`: exactly `artifact_product_audience_stage_only`
+- framework sections: exactly `first_impression`, `usability`, `visual_hierarchy`, `consistency`, `accessibility`
+- framework status: `finding`, `strength`, `mixed`, `no_material_issue`, `unsupported`
+- candidate kind: `finding`, `strength`, `validation_hypothesis`
+
+`pass_id` must be the used host-native baseline. `input_sources` must match that pass. Both completion flags must be `true`; otherwise the review cannot be scored. Every framework section needs a non-empty summary. `finding`, `strength`, and `mixed` require candidate IDs; `no_material_issue` and `unsupported` require none.
+
+Every candidate requires a unique ID, one source section, a concise category and summary, and visible evidence with `screen_id` and `description`. The union of framework `candidate_ids` must equal the candidate array exactly.
 
 ## Specialist synthesis
 
@@ -162,6 +255,7 @@ For every used pass whose purposes include `candidate_findings` or `specialist_r
     {
       "id": "SI-001",
       "source_pass_id": "P-01",
+      "source_candidate_ids": ["NC-003"],
       "summary": "The promoted entrance is visually dominant but its illustration does not fully explain the masquerade interaction",
       "disposition": "adopted",
       "target_refs": [{"type": "finding", "id": "F-001"}],
@@ -170,6 +264,7 @@ For every used pass whose purposes include `candidate_findings` or `specialist_r
     {
       "id": "SI-002",
       "source_pass_id": "P-01",
+      "source_candidate_ids": ["NC-001"],
       "summary": "The warm purple-red palette may cue dating or livestream categories",
       "disposition": "retained_for_validation",
       "target_refs": [{"type": "validation_hypothesis", "id": "H-001"}],
@@ -178,6 +273,7 @@ For every used pass whose purposes include `candidate_findings` or `specialist_r
     {
       "id": "SI-003",
       "source_pass_id": "P-01",
+      "source_candidate_ids": ["NC-002"],
       "summary": "Add a persistent tooltip to every gameplay card",
       "disposition": "not_adopted",
       "target_refs": [],
@@ -201,6 +297,8 @@ Allowed values:
 - `target_refs.type`: `finding`, `strength`, `validation_hypothesis`
 
 `source_pass_id` must reference a `used` pass. `adopted` items target final findings or strengths. `retained_for_validation` items target tentative findings or validation hypotheses and never deduct score. `not_adopted` items have no target and require a clear rationale.
+
+Every synthesis item sourced from the host-native baseline requires `source_candidate_ids`. Across those items, every native candidate must appear exactly once. Items from adaptive complement or other optional passes omit this field unless they have their own separately defined candidate registry.
 
 Do not copy a plugin's raw score into this structure. Do not create one synthesis item per sentence; consolidate duplicates from the same pass into the smallest useful set of conclusions.
 
@@ -356,7 +454,7 @@ Run `python3 scripts/review_score.py <review.json> --write`. The script adds:
     "score_confidence": 0.77,
     "dimension_scores": {},
     "scoring_profile": "wira-v2",
-    "scoring_version": "1.11",
+    "scoring_version": "1.12",
     "development_readiness": {
       "status": "conditional_handoff",
       "label": "有条件进入开发",
@@ -398,4 +496,4 @@ Do not render dimension score tables, dimension or multi-scale coverage, raw con
 
 For `audit_full`, render the seven audit sections—整体印象、易用性、视觉层级、一致性、无障碍性、做得好的地方、优先改进建议—then the evidence, coverage, detailed score, findings, validation, limitations, specialist synthesis, and capability-pass log defined in [report-template.md](report-template.md). 易用性 is a presentation roll-up for `wira-v2`, not a new scoring dimension; never deduct twice.
 
-In the full audit, render the coverage tables before detailed finding cards. Every visible region must appear in `Screen / Section Coverage`; use component and state tables to show inspection depth without creating extra scoring dimensions. Render `scope.dimension_coverage` so readers can trace the native expert, adaptive complement, final coverage, and source passes. Render `specialist_synthesis` before the capability-pass log.
+In the full audit, render the coverage tables before detailed finding cards. Every visible region must appear in `Screen / Section Coverage`; use component and state tables to show inspection depth without creating extra scoring dimensions. Render `scope.dimension_coverage` so readers can trace the native expert, adaptive complement, final coverage, and source passes. Render the frozen `native_expert_snapshot` and complete native candidate list before `specialist_synthesis`, then render the capability-pass log.

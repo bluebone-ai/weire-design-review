@@ -4,7 +4,7 @@ Run the current host's native design expert at full breadth first. Then inspect 
 
 ## Sequence
 
-1. Complete the required Product Design `audit` on Codex or Design `design-critique` on Claude without pre-limiting it to assigned dimensions.
+1. Complete and freeze the required Product Design `audit` on Codex or Design `design-critique` on Claude without pre-limiting it to assigned dimensions. Use the native candidates from [native-expert-snapshot.md](native-expert-snapshot.md), not a later recollection of the pass.
 2. Build `scope.dimension_coverage` before consolidating findings.
    - Use exactly the dimension IDs from the selected scoring profile in [review-framework.md](review-framework.md).
    - Map native labels such as `first impression`, `consistency`, or `goal-task fit` into those profile IDs; never add them as extra score or coverage dimensions.
@@ -26,6 +26,8 @@ After supplementation, `final_status` is `full` or `partial` for applicable dime
 
 Examples: on `wira-v1`, map native goal/task observations to `task_flow_clarity`, visual consistency to `visual_system`, and copy observations to `content_tone`. On `wira-v2`, keep the distinct `visual_hierarchy`, `color_expression`, and `design_system_evolution` dimensions. Presentation sections such as Overall Impression are never coverage dimensions.
 
+Do not mark `color_expression` as `full` merely because the native expert mentioned color consistency or text contrast. Full native coverage requires an explicit evidence-aware conclusion about palette or material impression, emotional or category signal, accent cleanliness, or an explicit no-material-issue result after inspecting those concerns. Otherwise mark it `partial` or `missing`. The mandatory Wira color-perception pass still runs for every visual redesign, palette decision, or brand-direction review even when the native expert independently found a color issue.
+
 ## Host-oriented gap priorities
 
 These are routing priorities based on observed output tendencies, not permanent limits on either expert. Always use the actual coverage matrix.
@@ -44,6 +46,7 @@ When Product Design leaves gaps, inspect:
 
 When Design critique leaves gaps, inspect:
 
+- `color_expression`: only when the frozen Design critique did not explicitly assess palette or material impression, emotional/category signal, or accent cleanliness; preserve any native color candidate before adding Wira evidence;
 - `task_flow_delta`, `task_flow_clarity`, or `usability`: goal-to-hierarchy fit, target-entry comprehension, next-action predictability, participation pressure, prevention, and recovery;
 - `baseline_capability`: removed, hidden, renamed, or demoted production capabilities and live signals;
 - `social_connection`: visible liveness, people-first evidence, icebreakers, entry pressure, and first-participation support;

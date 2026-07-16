@@ -1,6 +1,6 @@
 # Required and optional capability orchestration
 
-Use the host-native design expert as a required independent full-breadth baseline around the Wira review core only after the design-goal intake gate is confirmed. Then inspect dimension coverage and adaptively fill supported gaps before adding any other scoped specialists. Specialists do not replace the confirmed product objective, Wira brand standard, baseline comparison, finding schema, or deterministic score.
+Use the host-native design expert as a required isolated, full-breadth baseline around the Wira review core only after the design-goal intake gate is confirmed. Freeze its raw result and native candidates before Wira analysis. Then inspect dimension coverage and adaptively fill supported gaps before adding any other scoped specialists. Specialists do not replace the confirmed product objective, Wira brand standard, baseline comparison, finding schema, or deterministic score.
 
 ## Mandatory baseline passes
 
@@ -22,17 +22,18 @@ If the native pass is missing, disabled, or fails, stop before deterministic sco
 
 1. Confirm the user-declared or user-confirmed design goal and success criteria.
 2. Run the Wira core intake and evidence check.
-3. Run the mandatory host-native baseline pass against the accepted evidence at its full native breadth; do not reduce it to a preselected Wira checklist.
-4. Build the dimension coverage matrix defined in [adaptive-dimension-complement.md](adaptive-dimension-complement.md).
-5. When supported dimensions are `partial` or `missing`, run one Wira adaptive complement over only those gaps.
-6. Select only additional capabilities whose trigger and required inputs are present.
-7. Record every used, skipped, or unavailable pass in `capability_passes`.
-8. Treat specialist and complement output as candidate material.
-9. Verify each candidate against an accepted screenshot, video frame, Figma node, implementation state, design-system rule, or research record.
-10. Merge duplicate symptoms into one root finding and assign one primary scoring dimension.
-11. Add the contributing pass IDs to `source_pass_ids`; use `core` for the Wira review itself.
-12. Add every materially distinct native or complement conclusion to `specialist_synthesis` and record whether it was adopted, retained for validation, or not adopted.
-13. Score only the normalized final findings. Never average, add, or compare scores emitted by other plugins.
+3. Run the mandatory host-native baseline pass against the accepted evidence at its full native breadth; do not reduce it to a preselected Wira checklist. Follow [native-expert-snapshot.md](native-expert-snapshot.md), prefer an isolated subagent, and freeze the native output before continuing.
+4. Extract stable native candidate IDs and confirm all five native framework sections have explicit conclusions.
+5. Build the dimension coverage matrix defined in [adaptive-dimension-complement.md](adaptive-dimension-complement.md).
+6. When supported dimensions are `partial` or `missing`, run one Wira adaptive complement over only those gaps.
+7. Select only additional capabilities whose trigger and required inputs are present.
+8. Record every used, skipped, or unavailable pass in `capability_passes`.
+9. Treat specialist and complement output as candidate material.
+10. Verify each candidate against an accepted screenshot, video frame, Figma node, implementation state, design-system rule, or research record.
+11. Merge duplicate symptoms into one root finding and assign one primary scoring dimension.
+12. Add the contributing pass IDs to `source_pass_ids`; use `core` for the Wira review itself.
+13. Add every materially distinct native or complement conclusion to `specialist_synthesis` and record whether it was adopted, retained for validation, or not adopted. Map every frozen native candidate exactly once through `source_candidate_ids`.
+14. Score only the normalized final findings. Never average, add, or compare scores emitted by other plugins.
 
 After the mandatory baseline, do not run additional generic critique passes merely to create apparent consensus. Add an optional specialist only when it contributes a different evidence source, checklist, or deliverable. This minimization rule never suppresses the mandatory baseline.
 
@@ -40,7 +41,7 @@ The Wira adaptive complement is not a second generic expert and does not simulat
 
 ## Specialist synthesis contract
 
-Summarize specialist output; do not paste the full plugin response or hidden reasoning into the report.
+Preserve the raw native output as a separate audit artifact, then summarize specialist output for the report; do not paste hidden reasoning into the designer-facing report.
 
 - Create one `specialist_synthesis` item for each materially distinct conclusion from a used critique or specialist-review pass.
 - Use `adopted` when the conclusion is verified and merged into a final finding or strength. Point `target_refs` to those final IDs and include the pass ID in each target's `source_pass_ids`.
@@ -49,6 +50,7 @@ Summarize specialist output; do not paste the full plugin response or hidden rea
 - Preserve conflicting interpretations as retained items unless direct evidence clearly resolves the conflict. Agreement between plugins increases review breadth, not evidence confidence.
 - Preserve verified findings unique to the native expert or the Wira complement. Lack of a matching conclusion from the other source is not a rejection reason.
 - Ensure every used pass whose purpose includes `candidate_findings` or `specialist_review` has at least one synthesis item, even when none of its candidates are adopted.
+- For the host-native baseline, include `source_candidate_ids` on every synthesis item. Together these arrays must account for every frozen native candidate exactly once. An empty native snapshot still requires a synthesis item stating that the completed framework found no material candidate.
 
 Use stable synthesis IDs such as `SI-001`. Keep `summary` concise and evidence-oriented so readers can understand the specialist's contribution without reopening its raw response.
 
@@ -61,7 +63,7 @@ Use the capability exposed by the current host. Codex and Claude plugins cannot 
 | Host | Preferred pass | Typical registered name | Result handling |
 |---|---|---|---|
 | Codex | Required Product Design screenshot or flow audit | `product-design:audit` | Must run before scoring; normalize candidates into `specialist_synthesis`, then merge verified items into final findings or strengths |
-| Claude | Required Design critique | `design:design-critique` | Must run before scoring; normalize candidates into `specialist_synthesis`, then merge verified items into final findings or strengths |
+| Claude | Required Design critique | `design:design-critique` | Run as an isolated native snapshot when possible; freeze its complete candidate set before Wira analysis, then normalize candidates into `specialist_synthesis` |
 | Claude | Focused specialist pass | `design:accessibility-review`, `design:design-system`, `design:ux-copy`, `design:user-research`, `design:research-synthesis`, or `design:design-handoff` | Use only when its trigger and inputs are present; never import its score directly |
 
 On either host, add `wira-core / adaptive-dimension-complement` only after the native pass exposes supported coverage gaps. On Codex it commonly deepens color, brand, visual-language, copy-tone, or visible-accessibility checks. On Claude it commonly deepens goal-to-task fit, entry comprehension, baseline retention, social participation, state boundaries, or metric design. Route from observed coverage rather than assuming either expert is permanently limited to those areas.
@@ -97,7 +99,7 @@ Do not mark a readable static screenshot pass `skipped` because the core review 
 
 | Capability | Use in this workflow | Trigger | Boundary |
 |---|---|---|---|
-| `design-critique` | Independent usability, hierarchy, consistency, and first-impression pass | Every readable design review executed on Claude | Required before scoring; normalize and deduplicate, and do not import its severity or score unchanged |
+| `design-critique` | Independent usability, hierarchy, consistency, accessibility, and first-impression pass | Every readable design review executed on Claude | Required before scoring; isolate or seal the pass, freeze its output before Wira context is applied, preserve every material candidate, then normalize without importing its severity or score unchanged |
 | `accessibility-review` | Focused contrast, touch-target, readability, keyboard, and assistive-technology checklist | Accessibility is requested, the design is near handoff, or implementation/Figma data can support it | A screenshot supports visible risks only; never claim WCAG compliance without implementation and manual testing |
 | `design-system` | Audit tokens, components, variants, states, naming, and intentional extensions | A design system or inspectable Figma library is supplied, or the redesign introduces reusable patterns | Preserve Wira's `compliant / intentional_extension / undocumented_drift / violation` classification |
 | `ux-copy` | Review labels, CTAs, errors, empty states, onboarding, and localization pressure | Copy affects comprehension, tone, participation pressure, or layout resilience | Apply the confirmed Wira voice and product vocabulary before accepting alternatives |

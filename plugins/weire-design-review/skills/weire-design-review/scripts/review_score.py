@@ -100,6 +100,23 @@ NATIVE_COVERAGE_STATUSES = {"full", "partial", "missing", "unsupported"}
 FINAL_COVERAGE_STATUSES = {"full", "partial", "unsupported"}
 COMPLEMENT_STATUSES = {"not_needed", "used", "not_applicable"}
 ADAPTIVE_COMPLEMENT_PASS = ("wira-core", "adaptive-dimension-complement")
+NATIVE_EXECUTION_MODES = {"isolated_subagent", "sealed_sequential"}
+NATIVE_CONTEXT_SCOPE = "artifact_product_audience_stage_only"
+NATIVE_FRAMEWORK_SECTIONS = {
+    "first_impression",
+    "usability",
+    "visual_hierarchy",
+    "consistency",
+    "accessibility",
+}
+NATIVE_FRAMEWORK_STATUSES = {
+    "finding",
+    "strength",
+    "mixed",
+    "no_material_issue",
+    "unsupported",
+}
+NATIVE_CANDIDATE_KINDS = {"finding", "strength", "validation_hypothesis"}
 
 
 class ReviewValidationError(ValueError):
@@ -282,6 +299,96 @@ def validate_review(data: Any) -> dict[str, Any]:
         f"cross-host baseline {cross_host_key[0]}/{cross_host_key[1]} must be unavailable",
     )
     native_pass_id = baseline_passes[native_key]["id"]
+
+    native_snapshot = data.get("native_expert_snapshot")
+    require(isinstance(native_snapshot, dict), "native_expert_snapshot must be an object")
+    require(
+        native_snapshot.get("pass_id") == native_pass_id,
+        "native_expert_snapshot.pass_id must reference the used host-native baseline",
+    )
+    require(
+        native_snapshot.get("execution_mode") in NATIVE_EXECUTION_MODES,
+        f"native_expert_snapshot.execution_mode must be one of {sorted(NATIVE_EXECUTION_MODES)}",
+    )
+    require(
+        native_snapshot.get("context_scope") == NATIVE_CONTEXT_SCOPE,
+        f"native_expert_snapshot.context_scope must be {NATIVE_CONTEXT_SCOPE}",
+    )
+    require(
+        native_snapshot.get("completed_before_core_review") is True,
+        "native_expert_snapshot.completed_before_core_review must be true",
+    )
+    require(
+        native_snapshot.get("raw_output_preserved") is True,
+        "native_expert_snapshot.raw_output_preserved must be true",
+    )
+    validate_text(native_snapshot.get("artifact_ref"), "native_expert_snapshot.artifact_ref")
+    snapshot_input_sources = native_snapshot.get("input_sources")
+    validate_text_list(snapshot_input_sources, "native_expert_snapshot.input_sources", allow_empty=False)
+    require(
+        len(snapshot_input_sources) == len(set(snapshot_input_sources)),
+        "native_expert_snapshot.input_sources must not contain duplicates",
+    )
+    native_pass_input_sources = baseline_passes[native_key].get("input_sources", [])
+    require(
+        set(snapshot_input_sources) == set(native_pass_input_sources),
+        "native_expert_snapshot.input_sources must match the used host-native baseline",
+    )
+
+    framework_coverage = native_snapshot.get("framework_coverage")
+    require(isinstance(framework_coverage, dict), "native_expert_snapshot.framework_coverage must be an object")
+    require(
+        set(framework_coverage) == NATIVE_FRAMEWORK_SECTIONS,
+        "native_expert_snapshot.framework_coverage must contain exactly the five native sections",
+    )
+    framework_candidate_ids: list[str] = []
+    for section, coverage in framework_coverage.items():
+        prefix = f"native_expert_snapshot.framework_coverage.{section}"
+        require(isinstance(coverage, dict), f"{prefix} must be an object")
+        status = coverage.get("status")
+        require(status in NATIVE_FRAMEWORK_STATUSES, f"{prefix}.status is invalid")
+        validate_text(coverage.get("summary"), f"{prefix}.summary")
+        candidate_ids = coverage.get("candidate_ids")
+        validate_text_list(candidate_ids, f"{prefix}.candidate_ids")
+        require(len(candidate_ids) == len(set(candidate_ids)), f"{prefix}.candidate_ids must not contain duplicates")
+        if status in {"finding", "strength", "mixed"}:
+            require(candidate_ids, f"{prefix}.candidate_ids must not be empty when status is {status}")
+        else:
+            require(not candidate_ids, f"{prefix}.candidate_ids must be empty when status is {status}")
+        framework_candidate_ids.extend(candidate_ids)
+
+    native_candidates = native_snapshot.get("candidates")
+    require(isinstance(native_candidates, list), "native_expert_snapshot.candidates must be an array")
+    native_candidates_by_id: dict[str, dict[str, Any]] = {}
+    for index, candidate in enumerate(native_candidates):
+        prefix = f"native_expert_snapshot.candidates[{index}]"
+        require(isinstance(candidate, dict), f"{prefix} must be an object")
+        candidate_id = candidate.get("id")
+        validate_text(candidate_id, f"{prefix}.id")
+        require(candidate_id not in native_candidates_by_id, f"duplicate native candidate id: {candidate_id}")
+        require(candidate.get("kind") in NATIVE_CANDIDATE_KINDS, f"{prefix}.kind is invalid")
+        source_section = candidate.get("source_section")
+        require(source_section in NATIVE_FRAMEWORK_SECTIONS, f"{prefix}.source_section is invalid")
+        validate_text(candidate.get("category"), f"{prefix}.category")
+        validate_text(candidate.get("summary"), f"{prefix}.summary")
+        evidence = candidate.get("evidence")
+        require(isinstance(evidence, dict), f"{prefix}.evidence must be an object")
+        validate_text(evidence.get("screen_id"), f"{prefix}.evidence.screen_id")
+        validate_text(evidence.get("description"), f"{prefix}.evidence.description")
+        require(
+            candidate_id in framework_coverage[source_section]["candidate_ids"],
+            f"{prefix}.id must be listed by its source framework section",
+        )
+        native_candidates_by_id[candidate_id] = candidate
+
+    require(
+        len(framework_candidate_ids) == len(set(framework_candidate_ids)),
+        "native framework candidate IDs must not appear in more than one section",
+    )
+    require(
+        set(framework_candidate_ids) == set(native_candidates_by_id),
+        "native framework candidate IDs must match native_expert_snapshot.candidates exactly",
+    )
 
     def validate_source_pass_ids(value: Any, path: str) -> None:
         validate_text_list(value, path, allow_empty=False)
@@ -467,6 +574,7 @@ def validate_review(data: Any) -> dict[str, Any]:
     require(isinstance(specialist_synthesis, list), "specialist_synthesis must be an array")
     synthesis_ids: set[str] = set()
     synthesized_pass_ids: set[str] = set()
+    native_candidate_disposition_counts = {candidate_id: 0 for candidate_id in native_candidates_by_id}
     for index, item in enumerate(specialist_synthesis):
         prefix = f"specialist_synthesis[{index}]"
         require(isinstance(item, dict), f"{prefix} must be an object")
@@ -479,6 +587,24 @@ def validate_review(data: Any) -> dict[str, Any]:
         require(source_pass_id in pass_statuses, f"{prefix}.source_pass_id references unknown pass {source_pass_id}")
         require(pass_statuses[source_pass_id] == "used", f"{prefix}.source_pass_id references non-used pass {source_pass_id}")
         synthesized_pass_ids.add(source_pass_id)
+        if source_pass_id == native_pass_id:
+            source_candidate_ids = item.get("source_candidate_ids")
+            validate_text_list(source_candidate_ids, f"{prefix}.source_candidate_ids")
+            require(
+                len(source_candidate_ids) == len(set(source_candidate_ids)),
+                f"{prefix}.source_candidate_ids must not contain duplicates",
+            )
+            for candidate_id in source_candidate_ids:
+                require(
+                    candidate_id in native_candidates_by_id,
+                    f"{prefix}.source_candidate_ids references unknown native candidate {candidate_id}",
+                )
+                native_candidate_disposition_counts[candidate_id] += 1
+        else:
+            require(
+                "source_candidate_ids" not in item,
+                f"{prefix}.source_candidate_ids is reserved for the host-native snapshot",
+            )
         for field in ("summary", "rationale"):
             validate_text(item.get(field), f"{prefix}.{field}")
         disposition = item.get("disposition")
@@ -530,6 +656,24 @@ def validate_review(data: Any) -> dict[str, Any]:
     }
     missing_synthesis = sorted(synthesis_required_pass_ids - synthesized_pass_ids)
     require(not missing_synthesis, f"specialist_synthesis is required for used review passes: {missing_synthesis}")
+    unmapped_native_candidates = sorted(
+        candidate_id
+        for candidate_id, count in native_candidate_disposition_counts.items()
+        if count == 0
+    )
+    duplicate_native_candidates = sorted(
+        candidate_id
+        for candidate_id, count in native_candidate_disposition_counts.items()
+        if count > 1
+    )
+    require(
+        not unmapped_native_candidates,
+        f"native candidates must have one specialist_synthesis disposition: {unmapped_native_candidates}",
+    )
+    require(
+        not duplicate_native_candidates,
+        f"native candidates must not have multiple specialist_synthesis dispositions: {duplicate_native_candidates}",
+    )
 
     return data
 
@@ -669,7 +813,7 @@ def score_review(data: dict[str, Any]) -> dict[str, Any]:
         "score_confidence": rounded_confidence,
         "dimension_scores": dimension_scores,
         "scoring_profile": profile_name,
-        "scoring_version": "1.11",
+        "scoring_version": "1.12",
         "development_readiness": get_development_readiness(
             rounded_overall,
             rounded_confidence,
