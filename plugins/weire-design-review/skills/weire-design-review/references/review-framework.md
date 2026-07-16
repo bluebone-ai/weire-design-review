@@ -159,7 +159,7 @@ Weights are normalized across applicable dimensions. Unsupported dimensions are 
 
 ## Finding quality bar
 
-Each finding must include one problem, direct evidence, user impact, an actionable recommendation, severity, confidence, status, and primary dimension. Group repeated symptoms caused by one root issue.
+Each finding must include one problem, direct evidence, user impact, an actionable recommendation, severity and its rationale, goal relevance and its rationale, confidence, status, and one primary dimension. Group repeated symptoms caused by one root issue before scoring.
 
 Do not deduct for:
 

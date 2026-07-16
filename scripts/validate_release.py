@@ -112,6 +112,8 @@ def validate_skill() -> None:
     require("native-expert-snapshot.md" in text, "SKILL.md must freeze the host-native expert snapshot")
     require((SKILL / "references" / "element-accountability-audit.md").is_file(), "element-accountability-audit.md is missing")
     require("element-accountability-audit.md" in text, "SKILL.md must run the element accountability audit")
+    require((SKILL / "references" / "scoring-calibration.md").is_file(), "scoring-calibration.md is missing")
+    require("scoring-calibration.md" in text, "SKILL.md must apply scoring calibration")
     require("designer_summary" in text, "SKILL.md must define the default designer summary mode")
     require("audit_full" in text, "SKILL.md must retain the optional full audit mode")
     require(report_template.is_file(), "report-template.md is missing")

@@ -29,12 +29,13 @@ def make_review(findings: list[dict] | None = None, evidence_confidence: float =
     }
 
 
-def finding(dimension: str, severity: str) -> dict:
+def finding(dimension: str, severity: str, goal_relevance: str = "supporting") -> dict:
     return {
         "dimension": dimension,
         "severity": severity,
         "status": "confirmed",
         "confidence": 0.9,
+        "goal_relevance": goal_relevance,
     }
 
 
@@ -182,6 +183,9 @@ def validated_finding() -> dict:
         "status": "confirmed",
         "confidence": 0.9,
         "check_type": "semantic",
+        "severity_rationale": "The issue creates repeated hesitation but does not prevent task completion",
+        "goal_relevance": "direct",
+        "goal_relevance_rationale": "The issue affects the declared primary-action goal",
         "source_pass_ids": ["core"],
         "delta": "unknown",
         "title": "The primary action is difficult to identify",
@@ -200,15 +204,15 @@ def validated_finding() -> dict:
 
 class DevelopmentReadinessTests(unittest.TestCase):
     def test_85_is_normal_development_line(self) -> None:
-        findings = [finding(dimension, "moderate") for dimension in SCORER.PROFILES["generic-mobile-v1"]]
+        dimensions = list(SCORER.PROFILES["generic-mobile-v1"])
+        findings = [finding(dimensions[index % len(dimensions)], "minor") for index in range(10)]
         scores = SCORER.score_review(make_review(findings))
         self.assertEqual(scores["overall_score"], 85.0)
         self.assertEqual(scores["development_readiness"]["status"], "ready_for_development")
 
     def test_70_to_84_is_conditional(self) -> None:
-        findings = []
-        for dimension in SCORER.PROFILES["generic-mobile-v1"]:
-            findings.extend([finding(dimension, "moderate"), finding(dimension, "minor")])
+        dimensions = list(SCORER.PROFILES["generic-mobile-v1"])
+        findings = [finding(dimensions[index], "moderate") for index in range(4)]
         scores = SCORER.score_review(make_review(findings))
         self.assertEqual(scores["overall_score"], 80.0)
         self.assertEqual(scores["development_readiness"]["status"], "conditional_handoff")
@@ -216,6 +220,7 @@ class DevelopmentReadinessTests(unittest.TestCase):
 
     def test_one_major_prevents_normal_readiness(self) -> None:
         scores = SCORER.score_review(make_review([finding("usability", "major")]))
+        self.assertEqual(scores["overall_score"], 88.0)
         self.assertEqual(scores["development_readiness"]["status"], "conditional_handoff")
         self.assertIn("one_confirmed_major_finding", scores["development_readiness"]["reasons"])
         self.assertIn("重大问题", scores["development_readiness"]["recommended_action"])
@@ -231,6 +236,52 @@ class DevelopmentReadinessTests(unittest.TestCase):
         )
         self.assertEqual(scores["development_readiness"]["status"], "revise_before_development")
         self.assertIn("multiple_confirmed_major_findings", scores["development_readiness"]["reasons"])
+
+    def test_low_weight_dimension_cannot_hide_a_moderate_finding(self) -> None:
+        scores = SCORER.score_review(make_review([finding("platform_conventions", "moderate")]))
+        self.assertEqual(scores["raw_weighted_score"], 98.8)
+        self.assertEqual(scores["severity_calibrated_score"], 95.0)
+        self.assertEqual(scores["overall_score"], 95.0)
+        self.assertEqual(scores["calibration_limiter"], "severity_budget")
+
+    def test_goal_relevance_changes_global_penalty(self) -> None:
+        direct = SCORER.score_review(make_review([finding("usability", "moderate", "direct")]))
+        supporting = SCORER.score_review(make_review([finding("usability", "moderate", "supporting")]))
+        limited = SCORER.score_review(make_review([finding("usability", "moderate", "limited")]))
+        self.assertLess(direct["overall_score"], supporting["overall_score"])
+        self.assertLess(supporting["overall_score"], limited["overall_score"])
+
+    def test_three_moderates_prevent_normal_readiness(self) -> None:
+        findings = [
+            finding("visual_hierarchy", "moderate"),
+            finding("usability", "moderate"),
+            finding("content", "moderate"),
+        ]
+        scores = SCORER.score_review(make_review(findings))
+        self.assertEqual(scores["overall_score"], 85.0)
+        self.assertEqual(scores["development_readiness"]["status"], "conditional_handoff")
+        self.assertIn("several_confirmed_moderate_findings", scores["development_readiness"]["reasons"])
+
+    def test_six_moderates_require_revision(self) -> None:
+        dimensions = list(SCORER.PROFILES["generic-mobile-v1"])
+        findings = [finding(dimensions[index], "moderate") for index in range(6)]
+        scores = SCORER.score_review(make_review(findings))
+        self.assertEqual(scores["overall_score"], 70.0)
+        self.assertEqual(scores["development_readiness"]["status"], "revise_before_development")
+        self.assertIn("many_confirmed_moderate_findings", scores["development_readiness"]["reasons"])
+
+    def test_previous_high_score_issue_pattern_is_recalibrated(self) -> None:
+        findings = [
+            finding("visual_hierarchy", "major", "direct"),
+            finding("content", "moderate"),
+            finding("layout_consistency", "moderate"),
+            finding("platform_conventions", "minor", "limited"),
+            finding("interaction_motion", "minor", "limited"),
+        ]
+        scores = SCORER.score_review(make_review(findings))
+        self.assertEqual(scores["severity_calibrated_score"], 72.8)
+        self.assertEqual(scores["overall_score"], 72.8)
+        self.assertEqual(scores["development_readiness"]["status"], "conditional_handoff")
 
     def test_low_evidence_confidence_defers_decision(self) -> None:
         scores = SCORER.score_review(make_review(evidence_confidence=0.5))
@@ -250,7 +301,7 @@ class DevelopmentReadinessTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             scored = json.loads(review_path.read_text(encoding="utf-8"))
-        self.assertEqual(scored["scores"]["scoring_version"], "1.13")
+        self.assertEqual(scored["scores"]["scoring_version"], "2.0")
         self.assertEqual(scored["scores"]["development_readiness"]["status"], "ready_for_development")
 
 

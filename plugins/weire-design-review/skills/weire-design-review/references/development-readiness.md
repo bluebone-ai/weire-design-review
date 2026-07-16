@@ -6,12 +6,12 @@ Use the deterministic `scores.development_readiness` output to tell the reader w
 
 | Result | Rule | Development guidance |
 |---|---|---|
-| `ready_for_development` | Score `≥85`, score confidence `≥0.65`, no scored Blocker, and no scored Major | The design may enter normal design handoff and development |
-| `conditional_handoff` | Score `70–84`, or exactly one scored Major, with no Blocker and sufficient evidence | Complete the priority improvements, including any Major, and confirm the design adjustment before full development; technical research or low-rework work may proceed in parallel |
-| `revise_before_development` | Score `<70`, any scored Blocker, or at least two scored Majors | Do not enter normal development; run one design revision and re-review first |
+| `ready_for_development` | Score `≥85`, score confidence `≥0.65`, no scored Blocker or Major, and fewer than 3 scored Moderates | The design may enter normal design handoff and development |
+| `conditional_handoff` | Score `70–84`, exactly one scored Major, or 3–5 scored Moderates, with no stronger gate | Complete the priority improvements and confirm the adjusted design before full development; technical research or low-rework work may proceed in parallel |
+| `revise_before_development` | Score `<70`, any scored Blocker, at least two scored Majors, or at least 6 scored Moderates | Do not enter normal development; run one design revision and re-review first |
 | `insufficient_evidence` | Score confidence `<0.65` and no stronger revision gate applies | Add missing flow, state, prototype, implementation, or measurement evidence before making a development decision |
 
-Only confirmed findings whose confidence meets the scorer threshold count toward severity gates. Tentative findings remain visible as validation work but do not block development by themselves.
+Only confirmed findings whose confidence meets the scorer threshold count toward severity and quantity gates. Tentative findings remain visible as validation work but do not block development by themselves. Read [scoring-calibration.md](scoring-calibration.md) for the global penalty and goal-relevance formula.
 
 ## Reporting contract
 

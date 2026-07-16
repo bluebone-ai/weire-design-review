@@ -32,9 +32,9 @@ Use a compact callout:
 
 **{overall_score} 分｜{development_readiness.label}**
 
-- **开发标准：** 85 分以上，且没有计分的阻断或重大问题，证据充分
+- **开发标准：** 85 分以上，没有计分的阻断或重大问题，计分的一般问题少于 3 个，且证据充分
 - **本次目标：** {confirmed design goal}
-- **判断依据：** {plain-language readiness reasons and blocker/major counts}
+- **判断依据：** {plain-language readiness reasons and blocker/major/moderate counts}
 - **下一步：** {development_readiness.recommended_action}
 ```
 
@@ -120,6 +120,7 @@ Convert the accepted findings into a closure checklist:
 - [ ] F-002：{short completion criterion}
 - [ ] 总分达到 85 分以上
 - [ ] 没有计分的阻断或重大问题
+- [ ] 计分的一般问题少于 3 个
 - [ ] 关键结论的证据充分；截图无法判断的交互或状态已用原型、录屏、Figma 数值或实现验证补齐
 ```
 
@@ -198,7 +199,7 @@ After the seven sections, render:
 5. `State / Edge-case Audit`: relevant quantities, content boundaries, interaction states, device conditions, loading, empty, error, and recovery behavior.
 6. Detailed finding cards.
 7. Validation hypotheses and evidence limitations.
-8. Dimension score detail and deterministic readiness reasons.
+8. Dimension score detail, severity-calibration ledger, calibration limiter, and deterministic readiness reasons.
 9. Frozen native-expert snapshot and its full candidate list.
 10. Specialist synthesis, including the final disposition of every native candidate.
 11. Capability-pass log.

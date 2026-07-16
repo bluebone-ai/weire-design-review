@@ -49,6 +49,10 @@ PROFILES = {
 }
 
 DEDUCTIONS = {"blocker": 100, "major": 40, "moderate": 15, "minor": 5}
+GLOBAL_SEVERITY_PENALTIES = {"blocker": 40, "major": 12, "moderate": 5, "minor": 1.5}
+GOAL_RELEVANCE_MULTIPLIERS = {"direct": 1.25, "supporting": 1.0, "limited": 0.75}
+CONDITIONAL_MODERATE_COUNT = 3
+REVISION_MODERATE_COUNT = 6
 STATUSES = {"confirmed", "tentative"}
 SOURCE_TYPES = {"screenshot", "video", "figma", "mixed"}
 REVIEW_MODES = {"artifact", "redesign-comparison", "flow-audit", "direction-comparison"}
@@ -581,6 +585,12 @@ def validate_review(data: Any) -> dict[str, Any]:
         require(finding.get("severity") in DEDUCTIONS, f"{prefix}.severity is invalid")
         require(finding.get("status") in STATUSES, f"{prefix}.status is invalid")
         require(finding.get("check_type") in {"rule", "semantic", "contextual"}, f"{prefix}.check_type is invalid")
+        require(
+            finding.get("goal_relevance") in GOAL_RELEVANCE_MULTIPLIERS,
+            f"{prefix}.goal_relevance is invalid",
+        )
+        validate_text(finding.get("severity_rationale"), f"{prefix}.severity_rationale")
+        validate_text(finding.get("goal_relevance_rationale"), f"{prefix}.goal_relevance_rationale")
         confidence = finding.get("confidence")
         require(isinstance(confidence, (int, float)) and not isinstance(confidence, bool), f"{prefix}.confidence must be numeric")
         require(0 <= confidence <= 1, f"{prefix}.confidence must be between 0 and 1")
@@ -903,11 +913,14 @@ def get_development_readiness(
     score_confidence: float,
     blocker_count: int,
     major_count: int,
+    moderate_count: int,
 ) -> dict[str, Any]:
     thresholds = {
         "ready_score": DEVELOPMENT_READY_SCORE,
         "revision_score": DEVELOPMENT_REVISION_SCORE,
         "minimum_score_confidence": DEVELOPMENT_MIN_CONFIDENCE,
+        "conditional_moderate_count": CONDITIONAL_MODERATE_COUNT,
+        "revision_moderate_count": REVISION_MODERATE_COUNT,
     }
     reasons: list[str] = []
 
@@ -917,6 +930,8 @@ def get_development_readiness(
         reasons.append("confirmed_blocker_findings")
     if major_count >= 2:
         reasons.append("multiple_confirmed_major_findings")
+    if moderate_count >= REVISION_MODERATE_COUNT:
+        reasons.append("many_confirmed_moderate_findings")
     if reasons:
         return {
             "status": "revise_before_development",
@@ -937,11 +952,13 @@ def get_development_readiness(
             "requires_re_review": True,
         }
 
-    if overall_score < DEVELOPMENT_READY_SCORE or major_count == 1:
+    if overall_score < DEVELOPMENT_READY_SCORE or major_count == 1 or moderate_count >= CONDITIONAL_MODERATE_COUNT:
         if overall_score < DEVELOPMENT_READY_SCORE:
             reasons.append("overall_score_below_85")
         if major_count == 1:
             reasons.append("one_confirmed_major_finding")
+        if moderate_count >= CONDITIONAL_MODERATE_COUNT:
+            reasons.append("several_confirmed_moderate_findings")
         recommended_action = (
             "先关闭重大问题并确认修改方案；仅可并行开展技术预研或低返工风险工作。"
             if major_count == 1
@@ -949,7 +966,7 @@ def get_development_readiness(
         )
         return {
             "status": "conditional_handoff",
-            "label": "有条件进入开发",
+            "label": "需修改后进入开发",
             "recommended_action": recommended_action,
             "reasons": reasons,
             "thresholds": thresholds,
@@ -1012,14 +1029,35 @@ def score_review(data: dict[str, Any]) -> dict[str, Any]:
     ]
     blocker_count = sum(finding["severity"] == "blocker" for finding in scored_findings)
     major_count = sum(finding["severity"] == "major" for finding in scored_findings)
+    moderate_count = sum(finding["severity"] == "moderate" for finding in scored_findings)
+    severity_penalty_items: list[dict[str, Any]] = []
+    severity_penalty_total = 0.0
+    for index, finding in enumerate(scored_findings):
+        goal_relevance = finding.get("goal_relevance", "supporting")
+        base_penalty = GLOBAL_SEVERITY_PENALTIES[finding["severity"]]
+        multiplier = GOAL_RELEVANCE_MULTIPLIERS[goal_relevance]
+        penalty = base_penalty * multiplier
+        severity_penalty_total += penalty
+        severity_penalty_items.append(
+            {
+                "finding_id": finding.get("id", f"finding-{index + 1}"),
+                "severity": finding["severity"],
+                "goal_relevance": goal_relevance,
+                "base_penalty": base_penalty,
+                "multiplier": multiplier,
+                "penalty": round(penalty, 2),
+            }
+        )
+    severity_calibrated_score = max(0.0, 100 - severity_penalty_total)
+    calibrated_overall = min(raw_overall, severity_calibrated_score)
     if blocker_count:
-        overall = min(raw_overall, 59)
+        overall = min(calibrated_overall, 59)
     elif major_count >= 2:
-        overall = min(raw_overall, 79)
+        overall = min(calibrated_overall, 79)
     elif major_count == 1:
-        overall = min(raw_overall, 89)
+        overall = min(calibrated_overall, 89)
     else:
-        overall = raw_overall
+        overall = calibrated_overall
     score_confidence = sum(
         dimensions[dimension]["evidence_confidence"] * weights[dimension]
         for dimension in applicable
@@ -1030,15 +1068,26 @@ def score_review(data: dict[str, Any]) -> dict[str, Any]:
     return {
         "overall_score": rounded_overall,
         "raw_weighted_score": round(raw_overall, 1),
+        "severity_calibrated_score": round(severity_calibrated_score, 1),
+        "severity_penalty_total": round(severity_penalty_total, 1),
+        "severity_penalties": severity_penalty_items,
+        "calibration_limiter": (
+            "severity_budget"
+            if severity_calibrated_score < raw_overall
+            else "dimension_weighted"
+            if raw_overall < severity_calibrated_score
+            else "both"
+        ),
         "score_confidence": rounded_confidence,
         "dimension_scores": dimension_scores,
         "scoring_profile": profile_name,
-        "scoring_version": "1.13",
+        "scoring_version": "2.0",
         "development_readiness": get_development_readiness(
             rounded_overall,
             rounded_confidence,
             blocker_count,
             major_count,
+            moderate_count,
         ),
     }
 

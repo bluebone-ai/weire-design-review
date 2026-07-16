@@ -1,4 +1,4 @@
 interface:
   display_name: "微热设计评审"
-  short_description: "冻结专家结论并审查细节元素，再输出开发准入"
-  default_prompt: "Use $weire-design-review to confirm my design goal, freeze the host-native expert result, inventory semantic micro-elements, test their necessity and lifecycle evidence, preserve unsupported behavior as validation work, complement uncovered Wira dimensions, and default to a Simplified-Chinese designer report."
+  short_description: "审查专家与细节证据，严格校准设计开发准入"
+  default_prompt: "Use $weire-design-review to confirm my design goal, freeze the host-native expert result, audit semantic micro-elements, calibrate the score with dimension quality, finding severity, count, and goal relevance, and default to a Simplified-Chinese designer report."

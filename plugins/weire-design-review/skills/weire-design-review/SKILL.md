@@ -89,6 +89,7 @@ Read [capability-orchestration.md](references/capability-orchestration.md) whene
    - For redesigns, mark every finding or strength `better`, `same`, `worse`, or `unknown` relative to the matched baseline when the schema supports it.
 8. Score deterministically.
    - Create review JSON matching [result-schema.md](references/result-schema.md).
+   - Read [scoring-calibration.md](references/scoring-calibration.md). Classify every finding's goal relevance, calculate both weighted-dimension and global-severity scores, and use the lower result before readiness caps.
    - Run `python3 scripts/review_score.py <review.json> --write` from this skill directory.
    - Fix validation errors instead of manually inventing a score.
    - Read [development-readiness.md](references/development-readiness.md) and use the generated `development_readiness` gate without overriding its thresholds or severity rules.
@@ -135,7 +136,7 @@ Render every confirmed finding as a compact numbered task card ordered by severi
 
 Render at most three evidence-backed strengths in `Preserve`. If none are supported, state that no preserve item is confirmed instead of inventing praise.
 
-Build the re-review checklist from all blocker and major findings plus the highest-impact moderate findings. It must include the deterministic pass condition: score at least 85, no scored blocker or major finding, and sufficient evidence confidence.
+Build the re-review checklist from all blocker and major findings plus the highest-impact moderate findings. It must include the deterministic pass condition: score at least 85, no scored blocker or major finding, fewer than three scored moderate findings, and sufficient evidence confidence.
 
 Do not print dimension score tables, coverage matrices, capability logs, specialist synthesis, raw confidence/delta/evidence-level metadata, or the seven audit roll-up sections in the default response. These remain mandatory in the structured review and saved full audit. Show a concise artifact link or path when a full audit file was saved.
 

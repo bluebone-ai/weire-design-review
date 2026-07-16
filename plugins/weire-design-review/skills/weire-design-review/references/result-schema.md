@@ -394,6 +394,9 @@ For an applicable dimension, `native_status: full` requires `complement_status: 
       "status": "confirmed",
       "confidence": 0.88,
       "check_type": "contextual",
+      "severity_rationale": "The redesign structurally delays the declared core task and requires hierarchy rework",
+      "goal_relevance": "direct",
+      "goal_relevance_rationale": "The finding directly obstructs the confirmed room-entry objective",
       "source_pass_ids": ["core", "P-01"],
       "delta": "worse",
       "title": "The primary room-discovery action lost emphasis",
@@ -416,6 +419,9 @@ For an applicable dimension, `native_status: full` requires `complement_status: 
       "status": "tentative",
       "confidence": 0.55,
       "check_type": "semantic",
+      "severity_rationale": "The missing contract creates implementation ambiguity but does not block the visible task",
+      "goal_relevance": "supporting",
+      "goal_relevance_rationale": "A complete state contract supports trustworthy implementation but does not prove entry-rate impact",
       "source_pass_ids": ["core"],
       "delta": "unknown",
       "title": "The 上新 badge lacks an inspectable lifecycle contract",
@@ -440,13 +446,14 @@ Allowed values:
 - severity: `blocker`, `major`, `moderate`, `minor`
 - status: `confirmed`, `tentative`
 - check type: `rule`, `semantic`, `contextual`
+- goal relevance: `direct`, `supporting`, `limited`
 - delta: `better`, `same`, `worse`, `unknown`
 - evidence level: `measured`, `visually_estimated`, `association_hypothesis`
 - confidence: number from `0` to `1`
 
 Evidence requires `screen_id` and `description`; it may also include `region`, `timestamp_ms`, `node_id`, `baseline_screen_id`, or `design_system_ref`.
 
-Every finding requires a concise `location` that names the screen or step plus the smallest observable region or state. It also requires a non-empty `completion_criteria` array. Each criterion must be observable in a later screenshot, prototype, Figma inspection, implementation measurement, or user test; do not use subjective closure language such as `looks better`.
+Every finding requires a concise `location` that names the screen or step plus the smallest observable region or state. It also requires a concrete `severity_rationale`, `goal_relevance`, `goal_relevance_rationale`, and a non-empty `completion_criteria` array. Use `direct` only when the issue affects the confirmed primary goal or a named guardrail, `supporting` for product quality needed to support that goal, and `limited` for localized impact. Each completion criterion must be observable in a later screenshot, prototype, Figma inspection, implementation measurement, or user test; do not use subjective closure language such as `looks better`.
 
 `source_pass_ids` is optional and defaults conceptually to `["core"]`. It may contain `core` and IDs of `used` entries in `capability_passes`. It records contribution provenance, not independent evidence and not extra scoring weight.
 
@@ -578,21 +585,44 @@ Run `python3 scripts/review_score.py <review.json> --write`. The script adds:
 ```json
 {
   "scores": {
-    "overall_score": 84.0,
-    "raw_weighted_score": 84.0,
+    "overall_score": 83.5,
+    "raw_weighted_score": 88.6,
+    "severity_calibrated_score": 83.5,
+    "severity_penalty_total": 16.5,
+    "severity_penalties": [
+      {
+        "finding_id": "F-001",
+        "severity": "major",
+        "goal_relevance": "direct",
+        "base_penalty": 12,
+        "multiplier": 1.25,
+        "penalty": 15.0
+      },
+      {
+        "finding_id": "F-003",
+        "severity": "minor",
+        "goal_relevance": "supporting",
+        "base_penalty": 1.5,
+        "multiplier": 1.0,
+        "penalty": 1.5
+      }
+    ],
+    "calibration_limiter": "severity_budget",
     "score_confidence": 0.77,
     "dimension_scores": {},
     "scoring_profile": "wira-v2",
-    "scoring_version": "1.13",
+    "scoring_version": "2.0",
     "development_readiness": {
       "status": "conditional_handoff",
-      "label": "有条件进入开发",
+      "label": "需修改后进入开发",
       "recommended_action": "先完成优先改进项并确认修改方案；仅可并行开展技术预研或低返工风险工作。",
       "reasons": ["overall_score_below_85"],
       "thresholds": {
         "ready_score": 85,
         "revision_score": 70,
-        "minimum_score_confidence": 0.65
+        "minimum_score_confidence": 0.65,
+        "conditional_moderate_count": 3,
+        "revision_moderate_count": 6
       },
       "requires_re_review": true
     }
@@ -600,9 +630,11 @@ Run `python3 scripts/review_score.py <review.json> --write`. The script adds:
 }
 ```
 
-Confirmed findings deduct `100`, `40`, `15`, or `5` points from their primary dimension for blocker, major, moderate, or minor severity. Only findings with confidence at least `0.65` affect the score. Any blocker caps the total at `59`, two or more major findings cap it at `79`, and one major finding caps it at `89`.
+Confirmed findings still deduct `100`, `40`, `15`, or `5` points from their primary dimension for blocker, major, moderate, or minor severity. In parallel, the global severity budget deducts `40`, `12`, `5`, or `1.5` total-score points, multiplied by goal relevance (`direct: 1.25`, `supporting: 1.0`, `limited: 0.75`). The final pre-cap score is the lower of the weighted-dimension score and severity-calibrated score; this avoids both low-weight dilution and additive double deduction. Only findings with confidence at least `0.65` affect either score. Read [scoring-calibration.md](scoring-calibration.md).
 
-The normal development line is `85`. Scores from `70` through `84` are conditional; scores below `70` require design revision. Any scored Blocker or at least two scored Majors forces `revise_before_development`; one scored Major prevents normal readiness. When score confidence is below `0.65` and no stronger revision gate applies, use `insufficient_evidence`. Follow [development-readiness.md](development-readiness.md) and never hand-edit this generated result.
+Any blocker caps the total at `59`, two or more major findings cap it at `79`, and one major finding caps it at `89`. Six or more confirmed Moderates require revision; three to five prevent normal development even when the numeric score reaches 85.
+
+The normal development line is `85`. Scores from `70` through `84` require modification before full development; scores below `70` require design revision. Any scored Blocker, at least two scored Majors, or at least six scored Moderates forces `revise_before_development`; one scored Major or three to five scored Moderates prevents normal readiness. When score confidence is below `0.65` and no stronger revision gate applies, use `insufficient_evidence`. Follow [development-readiness.md](development-readiness.md) and never hand-edit this generated result.
 
 Allowed `development_readiness.status` values:
 
@@ -611,7 +643,7 @@ Allowed `development_readiness.status` values:
 - `revise_before_development`
 - `insufficient_evidence`
 
-`reasons` contains stable machine-readable codes such as `overall_score_below_85`, `overall_score_below_70`, `one_confirmed_major_finding`, `multiple_confirmed_major_findings`, `confirmed_blocker_findings`, or `score_confidence_below_0.65`. Render those codes as plain-language evidence and related finding IDs rather than exposing only the raw code.
+`reasons` contains stable machine-readable codes such as `overall_score_below_85`, `overall_score_below_70`, `one_confirmed_major_finding`, `multiple_confirmed_major_findings`, `several_confirmed_moderate_findings`, `many_confirmed_moderate_findings`, `confirmed_blocker_findings`, or `score_confidence_below_0.65`. Render those codes as plain-language evidence and related finding IDs rather than exposing only the raw code.
 
 For redesign comparisons, score both versions separately with matched scope. A delta label is an evidence-based comparison; the scoring script does not manufacture a numeric improvement from unmatched evidence.
 
@@ -621,7 +653,7 @@ The scored JSON remains the source of truth. `review.output_mode` changes only p
 
 For `designer_summary`, follow the four default sections in [report-template.md](report-template.md): 评审结果、优先改稿清单、本轮需要保留、修改后复审条件. Lead with score and readiness. Render every confirmed finding as a compact task card with ID, severity, location, concrete problem, impact, recommendation, and completion criteria. Separate tentative findings under `待验证（不扣分）`. Render at most three strengths and derive closure checks from all blocker and major findings plus goal-critical moderate findings.
 
-Do not render dimension score tables, dimension or multi-scale coverage, the full element-accountability ledger, raw confidence/delta/evidence-level metadata, specialist synthesis, or capability-pass logs in the default visible response. These fields remain required in the JSON and full audit. When the environment supports files, save the full audit and scored JSON and provide only their paths after the concise report.
+Do not render dimension score tables, dimension or multi-scale coverage, the full element-accountability ledger, the per-finding severity-calibration ledger, raw confidence/delta/evidence-level metadata, specialist synthesis, or capability-pass logs in the default visible response. These fields remain required in the JSON and full audit. When the environment supports files, save the full audit and scored JSON and provide only their paths after the concise report.
 
 For `audit_full`, render the seven audit sections—整体印象、易用性、视觉层级、一致性、无障碍性、做得好的地方、优先改进建议—then the evidence, coverage, detailed score, findings, validation, limitations, specialist synthesis, and capability-pass log defined in [report-template.md](report-template.md). 易用性 is a presentation roll-up for `wira-v2`, not a new scoring dimension; never deduct twice.
 
